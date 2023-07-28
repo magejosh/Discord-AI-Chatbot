@@ -24,7 +24,7 @@ TRIGGER:
   - Aerith
 # Define the triggers that the bot should always respond to when in message
 
-DISABLE_PRESENCE: false 
+STATIC_PRESENCE: true
 PRESENCES:
   - Final Fantasy VII
 # List of different presences to be used
