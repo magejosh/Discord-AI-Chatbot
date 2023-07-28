@@ -74,8 +74,22 @@ def fetch_chat_models():
 
     return models
 
-chat_models = fetch_chat_models()
-model_blob = "\n".join(chat_models)
+try:
+    chat_models = fetch_chat_models()
+    model_blob = "\n".join(chat_models)
+except:
+    model_blob = \
+    """
+    GPT-4 (gpt-4)
+    GPT-4-0314 (gpt-4-0314)
+    GPT-4-32k (gpt-4-32k)
+    GPT-3.5-TURBO (gpt-3.5-turbo)
+    GPT-3.5-TURBO-0301 (gpt-3.5-turbo-0301)
+    GPT-3.5-TURBO-16K (gpt-3.5-turbo-16k)
+    LLAMA-2-7B-CHAT (llama-2-7b-chat)
+    LLAMA-2-13B-CHA (llama-2-13b-chat)
+    LLAMA-2-70B-CHAT (llama-2-70b-chat)
+    """
 
 @bot.event
 async def on_ready():
