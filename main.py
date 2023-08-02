@@ -268,7 +268,7 @@ async def toggleactive(ctx, persona: app_commands.Choice[str] = instruction[inst
             json.dump(active_channels, f, indent=4)
         await ctx.send(f"{ctx.channel.mention} {current_language['toggleactive_msg_1']}", delete_after=3)
     else:
-        active_channels[channel_id] = persona.value if persona.value else persona
+        active_channels[channel_id] = if persona.value persona.value else persona
         with open("channels.json", "w", encoding='utf-8') as f:
             json.dump(active_channels, f, indent=4)
         await ctx.send(f"{ctx.channel.mention} {current_language['toggleactive_msg_2']}", delete_after=3)
@@ -323,38 +323,49 @@ async def clear(ctx):
     app_commands.Choice(name='🌌 Timeless', value='TIMELESS')
 ])
 @app_commands.describe(
-    prompt="Write an amazing prompt for a image",
+    prompt="Write an amazing prompt for an image",
     model="Model to generate image",
     sampler="Sampler for denosing",
-    negative="Prompt that specifies what you do NOT want the model to generate",
+    negative="Specify what you do NOT want the model to include",
+    num_images="Specify the number of images (Seed incremented)",
 )
 @commands.guild_only()
-async def imagine(ctx, prompt: str, model: app_commands.Choice[str], sampler: app_commands.Choice[str], negative: str = None, seed: int = None):
+async def imagine(ctx, prompt: str, model: app_commands.Choice[str], sampler: app_commands.Choice[str], negative: str = None, num_images : int = 1, seed: int = None):
     for word in prompt.split():
         is_nsfw = word in blacklisted_words
+    if is_nsfw and not ctx.channel.nsfw:
+        await ctx.send(f"⚠️ NSFW images can only be posted in age-restricted channels", delete_after=30)
+        return
+
     if seed is None:
         seed = random.randint(10000, 99999)
     await ctx.defer()
 
     model_uid = Model[model.value].value[0]
 
-    if is_nsfw and not ctx.channel.nsfw:
-        await ctx.send(f"⚠️ NSFW images can only be posted in age-restricted channels", delete_after=30)
-        return
+    if num_images > 10:
+        num_images = 10
 
-    if model_uid=="sdxl":
-        imagefileobj = sdxl(prompt)
-    else:
-        imagefileobj = await generate_image_prodia(prompt, model_uid, sampler.value, seed, negative)
+    tasks = []
+    async with aiohttp.ClientSession() as session:
+        while len(tasks) < num_images:
+            task = asyncio.ensure_future(generate_image_prodia(prompt, model_uid, sampler.value, seed+(len(tasks)-1), negative))
+            tasks.append(task)
+
+        generated_images = await asyncio.gather(*tasks)
+
+    files = []
+    for index, image in enumerate(generated_images):
+        if is_nsfw:
+            img_file = discord.File(image, filename=f"image_{index+1}.png", spoiler=True, description=prompt)
+        else:
+            img_file = discord.File(image, filename=f"image_{index+1}.png", description=prompt)
+        files.append(img_file)
 
     if is_nsfw:
-        img_file = discord.File(imagefileobj, filename="image.png", spoiler=True, description=prompt)
         prompt = f"||{prompt}||"
-    else:
-        img_file = discord.File(imagefileobj, filename="image.png", description=prompt)
-
-    if is_nsfw:
         embed = discord.Embed(color=0xFF0000)
+        embed.add_field(name='🔞 NSFW', value=f'- {str(is_nsfw)}', inline=True)
     else:
         embed = discord.Embed(color=discord.Color.random())
     embed.title = f"🎨Generated Image by {ctx.author.display_name}"
@@ -365,11 +376,7 @@ async def imagine(ctx, prompt: str, model: app_commands.Choice[str], sampler: ap
     embed.add_field(name='🧬 Sampler', value=f'- {sampler.value}', inline=True)
     embed.add_field(name='🌱 Seed', value=f'- {str(seed)}', inline=True)
 
-    if is_nsfw:
-        embed.add_field(name='🔞 NSFW', value=f'- {str(is_nsfw)}', inline=True)
-
-    sent_message = await ctx.send(embed=embed, file=img_file)
-
+    sent_message = await ctx.send(embed=embed, files=files)
 
 @bot.hybrid_command(name="imagine-dalle", description="Create images using DALL-E")
 @commands.guild_only()
@@ -389,7 +396,7 @@ async def imagine(ctx, prompt: str, model: app_commands.Choice[str], sampler: ap
      app_commands.Choice(name='🔳 Large', value='1024x1024')
 ])
 @app_commands.describe(
-     prompt="Write an amazing prompt for a image",
+     prompt="Write an amazing prompt for an image",
      size="Choose the size of the image"
 )
 async def imagine_dalle(ctx, prompt, model: app_commands.Choice[str], size: app_commands.Choice[str], num_images : int = 1):
