@@ -75,8 +75,7 @@ def fetch_chat_models():
     return models
 
 try:
-    chat_models = fetch_chat_models()
-    model_blob = "\n".join(chat_models)
+    model_blob = "\n".join(fetch_chat_models())
 except:
     model_blob = \
     """
@@ -171,8 +170,9 @@ async def on_message(message):
         )
 
         if internet_access:
-            instructions += f"""\n\nIt's currently {current_time}, You have real-time information and the ability to browse the internet."""
-            await message.add_reaction("🔎")
+            instructions += f"""\n\nIt's currently {current_time}. You have real-time information and the ability to browse the internet."""
+        if internet_access:
+            await message.add_reaction("💬")
         channel_id = message.channel.id
         key = f"{message.author.id}-{channel_id}"
 
@@ -189,7 +189,7 @@ async def on_message(message):
         async with message.channel.typing():
             response = await generate_response(instructions=instructions, search=search_results, history=history)
             if internet_access:
-                await message.remove_reaction("🔎", bot.user)
+                await message.remove_reaction("💬", bot.user)
         message_history[key].append({"role": "assistant", "name": personaname, "content": response})
 
         if response is not None:
@@ -268,7 +268,10 @@ async def toggleactive(ctx, persona: app_commands.Choice[str] = instruction[inst
             json.dump(active_channels, f, indent=4)
         await ctx.send(f"{ctx.channel.mention} {current_language['toggleactive_msg_1']}", delete_after=3)
     else:
-        active_channels[channel_id] = if persona.value persona.value else persona
+        if persona.value:
+            active_channels[channel_id] = persona.value
+        else:
+            active_channels[channel_id] = persona
         with open("channels.json", "w", encoding='utf-8') as f:
             json.dump(active_channels, f, indent=4)
         await ctx.send(f"{ctx.channel.mention} {current_language['toggleactive_msg_2']}", delete_after=3)
@@ -301,13 +304,13 @@ async def clear(ctx):
 @app_commands.choices(model=[
     app_commands.Choice(name='🙂 SDXL (The best of the best)', value='sdxl'),
     app_commands.Choice(name='🌈 Elldreth vivid mix (Landscapes, Stylized characters, nsfw)', value='ELLDRETHVIVIDMIX'),
-    app_commands.Choice(name='💪 Deliberate v2 (Anything you want, nsfw)', value='DELIBERATE'),
-    app_commands.Choice(name='🔮 Dreamshaper (HOLYSHIT this so good)', value='DREAMSHAPER_6'),
+    app_commands.Choice(name='💪 Deliberate v2 (All-in-one, nsfw)', value='DELIBERATE'),
+    app_commands.Choice(name='🔮 Dreamshaper', value='DREAMSHAPER_6'),
     app_commands.Choice(name='🎼 Lyriel', value='LYRIEL_V16'),
     app_commands.Choice(name='💥 Anything diffusion (Good for anime)', value='ANYTHING_V4'),
     app_commands.Choice(name='🌅 Openjourney (Midjourney alternative)', value='OPENJOURNEY'),
     app_commands.Choice(name='🏞️ Realistic (Lifelike pictures)', value='REALISTICVS_V20'),
-    app_commands.Choice(name='👨‍🎨 Portrait (For headshots I guess)', value='PORTRAIT'),
+    app_commands.Choice(name='👨‍🎨 Portrait', value='PORTRAIT'),
     app_commands.Choice(name='🌟 Rev animated (Illustration, Anime)', value='REV_ANIMATED'),
     app_commands.Choice(name='🤖 Analog', value='ANALOG'),
     app_commands.Choice(name='🌌 AbyssOrangeMix', value='ABYSSORANGEMIX'),
@@ -357,24 +360,25 @@ async def imagine(ctx, prompt: str, model: app_commands.Choice[str], sampler: ap
     files = []
     for index, image in enumerate(generated_images):
         if is_nsfw:
-            img_file = discord.File(image, filename=f"image_{index+1}.png", spoiler=True, description=prompt)
+            img_file = discord.File(image, filename=f"image_{seed+index}.png", spoiler=True, description=prompt)
         else:
-            img_file = discord.File(image, filename=f"image_{index+1}.png", description=prompt)
+            img_file = discord.File(image, filename=f"image_{seed+index}.png", description=prompt)
         files.append(img_file)
 
     if is_nsfw:
         prompt = f"||{prompt}||"
         embed = discord.Embed(color=0xFF0000)
-        embed.add_field(name='🔞 NSFW', value=f'- {str(is_nsfw)}', inline=True)
+        embed.add_field(name='🔞 NSFW', value=f'🔞 {str(is_nsfw)}', inline=True)
     else:
         embed = discord.Embed(color=discord.Color.random())
-    embed.title = f"🎨Generated Image by {ctx.author.display_name}"
-    embed.add_field(name='📝 Prompt', value=f'- {prompt}', inline=False)
     if negative is not None:
-        embed.add_field(name='📝 Negative Prompt', value=f'- {negative}', inline=False)
-    embed.add_field(name='🤖 Model', value=f'- {model.value}', inline=True)
-    embed.add_field(name='🧬 Sampler', value=f'- {sampler.value}', inline=True)
-    embed.add_field(name='🌱 Seed', value=f'- {str(seed)}', inline=True)
+        embed.title = f'🎨 {prompt} (\u002D *{negative}*)'
+    else:
+        embed.title = f'🎨 {prompt}'
+    embed.add_field(name=f'📝 Generated by {ctx.author.display_name}', value='\u200b', inline=False)
+    embed.add_field(name='🤖 Model', value=f'🤖 {model.value}', inline=True)
+    embed.add_field(name='🧬 Sampler', value=f'🧬 {sampler.value}', inline=True)
+    embed.add_field(name='🌱 Seed', value=f'🌱 {str(seed)}', inline=True)
 
     sent_message = await ctx.send(embed=embed, files=files)
 
@@ -405,7 +409,7 @@ async def imagine_dalle(ctx, prompt, model: app_commands.Choice[str], size: app_
     size = size.value
     num_images = min(num_images, 4)
     imagefileobjs = await dall_e_gen(model, prompt, size, num_images)
-    await ctx.send(f'🎨 Generated Image by {ctx.author.name}')
+    await ctx.send(f'🎨 Generated by {ctx.author.name}')
     for imagefileobj in imagefileobjs:
         file = discord.File(imagefileobj, filename="image.png", spoiler=True, description=prompt)
         sent_message =  await ctx.send(file=file)
