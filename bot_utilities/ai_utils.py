@@ -77,11 +77,11 @@ async def search(prompt):
     else:
         blob = "No search query is needed for a response"
     return blob
-    
+
 async def fetch_models():
     models = await openai_client.models.list()
     return models
-    
+
 async def generate_response(instructions, search, history):
     search_results = search if search is not None else "Search feature is disabled"
     messages = [
@@ -135,7 +135,6 @@ async def dall_e_gen(model, prompt, size, num_images):
                 img_file_obj = io.BytesIO(content)
                 imagefileobjs.append(img_file_obj)
     return imagefileobjs
-    
 
 async def generate_image_prodia(prompt, model, sampler, seed, neg):
     print("\033[1;32m(Prodia) Creating image for :\033[0m", prompt)
@@ -162,7 +161,7 @@ async def generate_image_prodia(prompt, model, sampler, seed, neg):
             async with session.get(url, params=params) as response:
                 data = await response.json()
                 return data['job']
-            
+
     job_id = await create_job(prompt, model, sampler, seed, neg)
     url = f'https://api.prodia.com/job/{job_id}'
     headers = {
