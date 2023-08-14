@@ -42,9 +42,92 @@ BLACKLIST_WORDS:
   - loli
   - naked
   - nude
+  - nsfw
   - porn
   - pornography
   - sex
   - XXX
 
 # Blacklisted words for /Imagine command this is disabled if you enable AI_NSFW_CONTENT_FILTER
+
+IMAGE_FILTER_DEFAULT:
+  - (nsfw:1.5)
+  - verybadimagenegative_v1.3
+  - ng_deepnegative_v1_75t
+  - (ugly face:0.8)
+  - cross-eyed
+  - sketches
+  - (worst quality:2)
+  - (low quality:2)
+  - (normal quality:2)
+  - lowres
+  - normal quality
+  - ((monochrome))
+  - ((grayscale))
+  - skin spots
+  - acne
+  - skin blemishes
+  - bad anatomy
+  - DeepNegative
+  - facing away
+  - tilted head
+  - {Multiple people}
+  - bad anatomy
+  - bad hands
+  - text
+  - error
+  - missing fingers
+  - extra digit
+  - fewer digits
+  - cropped
+  - worst quality
+  - low quality
+  - jpeg artifacts
+  - signature
+  - watermark
+  - username
+  - blurry
+  - bad feet
+  - cropped
+  - poorly drawn hands
+  - poorly drawn face
+  - mutation
+  - deformed
+  - extra fingers
+  - fewer digits
+  - extra limbs
+  - extra arms
+  - extra legs
+  - malformed limbs
+  - fused fingers
+  - too many fingers
+  - long neck
+  - cross-eyed
+  - mutated hands
+  - polar lowres
+  - bad body
+  - bad proportions
+  - gross proportions
+  - missing arms
+  - missing legs
+  - extra digits
+  - extra foot
+  - repeating hair
+  - [[[[[bad-artist-anime, sketch by bad-artist]]]]]
+  - [[[mutation, lowres, bad hands, [text, signature, watermark, username], blurry, monochrome, grayscale, realistic, simple background, limited palette]]]
+  - close-up
+  - (swimsuit, cleavage, armpits, ass, navel, cleavage cutout)
+  - (forehead jewel:1.2)
+  - (forehead mark:1.5)
+  - (bad and mutated hands:1.3)
+  - (worst quality:2.0)
+  - (low quality:2.0)
+  - (blurry:2.0)
+  - multiple limbs
+  - (interlocked fingers:1.2)
+  - (interlocked leg:1.2)
+  - ugly Fingers
+  - (extra digit and hands and fingers and legs and arms and feet:1.4)
+  - crown braid
+  - (deformed fingers:1.2)
+  - (long fingers:1.2)
