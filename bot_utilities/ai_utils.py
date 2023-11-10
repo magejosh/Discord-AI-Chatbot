@@ -17,7 +17,7 @@ current_language = load_current_language()
 internet_access = config['INTERNET_ACCESS']
 
 openai_client = AsyncOpenAI(
-    api_key = os.getenv('CHIMERA_GPT_KEY'),
+    api_key = os.getenv('NAGA_GPT_KEY'),
     base_url = "https://api.naga.ac/v1"
 )
 

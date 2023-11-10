@@ -14,7 +14,7 @@ from discord import Embed, app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from bot_utilities.ai_utils import generate_response, generate_image_prodia, search, poly_image_gen, generate_gpt4_response, dall_e_gen, sdxl
+from bot_utilities.ai_utils import generate_response, generate_image_prodia, search, poly_image_gen, generate_gpt4_response, dall_e_gen, sdxl_image_gen
 from bot_utilities.response_util import split_response, translate_to_en, get_random_prompt
 from bot_utilities.discord_util import check_token, get_discord_token
 from bot_utilities.config_loader import config, load_current_language, load_instructions
@@ -53,12 +53,12 @@ current_language = load_current_language()
 instruction = {}
 load_instructions(instruction)
 
-CHIMERA_GPT_KEY = os.getenv('CHIMERA_GPT_KEY')
+NAGA_GPT_KEY = os.getenv('NAGA_GPT_KEY')
 
 def fetch_chat_models():
     models = []
     headers = {
-        'Authorization': f'Bearer {CHIMERA_GPT_KEY}',
+        'Authorization': f'Bearer {NAGA_GPT_KEY}',
         'Content-Type': 'application/json'
     }
 
