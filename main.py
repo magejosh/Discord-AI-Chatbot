@@ -100,6 +100,11 @@ def text_to_speech(text):
     tts = gTTS(text=text, lang='en')
     tts.save("tts_output.mp3")
 
+# Text To Speech
+def text_to_speech(text):
+    tts = gTTS(text=text, lang='en')
+    tts.save("tts_output.mp3")
+
 @bot.event
 async def on_ready():
     await bot.tree.sync()
