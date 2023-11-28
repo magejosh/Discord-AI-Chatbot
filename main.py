@@ -14,6 +14,10 @@ from discord import Embed, app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
+# Text to Speech
+from gtts import gTTS
+import pyttsx3
+
 from bot_utilities.ai_utils import generate_response, generate_image_prodia, search, poly_image_gen, generate_gpt4_response, dall_e_gen, sdxl_image_gen
 from bot_utilities.response_util import split_response, translate_to_en, get_random_prompt
 from bot_utilities.discord_util import check_token, get_discord_token
@@ -90,6 +94,11 @@ except:
     LLAMA-2-13B-CHA (llama-2-13b-chat)
     LLAMA-2-70B-CHAT (llama-2-70b-chat)
     """
+
+# Text To Speech
+def text_to_speech(text):
+    tts = gTTS(text=text, lang='en')
+    tts.save("tts_output.mp3")
 
 @bot.event
 async def on_ready():
@@ -192,6 +201,26 @@ async def on_message(message):
             if internet_access:
                 await message.remove_reaction("💬", bot.user)
         message_history[key].append({"role": "assistant", "name": personaname, "content": response})
+
+        # Generate a TTS file
+        text_to_speech(response)
+
+        # Join VC to give reponse!
+        author_voice_channel = None
+        if message.guild:  # Check if the message is from a guild (server)
+            author_member = message.guild.get_member(message.author.id)
+            if author_member and author_member.voice:
+                author_voice_channel = author_member.voice.channel
+
+        if author_voice_channel:
+            # Rest of the code to play TTS in the voice channel
+            voice_channel = await author_voice_channel.connect()
+            voice_channel.play(discord.FFmpegPCMAudio(executable="ffmpeg", source="tts_output.mp3"))
+            while voice_channel.is_playing():
+                await asyncio.sleep(1)
+            await voice_channel.disconnect()
+
+        # TTS, response to VC ends!
 
         if response is not None:
             for chunk in split_response(response):
