@@ -17,8 +17,8 @@ current_language = load_current_language()
 internet_access = config['INTERNET_ACCESS']
 
 openai_client = AsyncOpenAI(
-    api_key = os.getenv('NAGA_GPT_KEY'),
-    base_url = "https://api.naga.ac/v1"
+    api_key = os.getenv('OPENROUTER_KEY'),
+    base_url = "https://openrouter.ai/api/v1"
 )
 
 async def search(prompt):
@@ -92,7 +92,7 @@ async def generate_gpt4_response(prompt):
             {"role": "system", "name": "admin_user", "content": prompt},
         ]
     response = await openai_client.chat.chat.completions.create(
-        model='gpt-4',
+        model='meta-llama/llama-3.2-11b-vision-instruct:free',
         messages=messages
     )
     message = response.choices[0].message.content

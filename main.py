@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 
 # Text to Speech
 from gtts import gTTS
+from requests.exceptions import Timeout
 import pyttsx3
 
 from bot_utilities.ai_utils import generate_response, generate_image_prodia, search, poly_image_gen, generate_gpt4_response, dall_e_gen, sdxl_image_gen
@@ -57,22 +58,24 @@ current_language = load_current_language()
 instruction = {}
 load_instructions(instruction)
 
-NAGA_GPT_KEY = os.getenv('NAGA_GPT_KEY')
+OPENROUTER_KEY = os.getenv('OPENROUTER_KEY')
 
 def fetch_chat_models():
     models = []
     headers = {
-        'Authorization': f'Bearer {NAGA_GPT_KEY}',
+        'Authorization': f'Bearer {OPENROUTER_KEY}',
         'Content-Type': 'application/json'
     }
 
-    response = requests.get('https://api.naga.ac/v1/models', headers=headers)
+    response = requests.get('https://openrouter.ai/api/v1/models', headers=headers)
+    
     if response.status_code == 200:
         ModelsData = response.json()
+        # Filter out non-chat models by excluding image-based models or other non-chat models.
         models.extend(
             model['id']
-            for model in ModelsData.get('data')
-            if "max_images" not in model
+            for model in ModelsData.get('data', [])
+            if "max_images" not in model  # Filters out models that are not chat-based
         )
     else:
         print(f"Failed to fetch chat models. Status code: {response.status_code}")
@@ -81,30 +84,37 @@ def fetch_chat_models():
 
 try:
     model_blob = "\n".join(fetch_chat_models())
-except:
+except Exception as e:
+    print(f"Error fetching models: {e}")
     model_blob = \
     """
-    GPT-4 (gpt-4)
-    GPT-4-0314 (gpt-4-0314)
-    GPT-4-32k (gpt-4-32k)
-    GPT-3.5-TURBO (gpt-3.5-turbo)
-    GPT-3.5-TURBO-0301 (gpt-3.5-turbo-0301)
-    GPT-3.5-TURBO-16K (gpt-3.5-turbo-16k)
-    LLAMA-2-7B-CHAT (llama-2-7b-chat)
-    LLAMA-2-13B-CHA (llama-2-13b-chat)
-    LLAMA-2-70B-CHAT (llama-2-70b-chat)
+    Meta: Llama 3.2 11B Vision Instruct (free)
+    Meta: Llama 3.1 8B Instruct (free)
+    Meta: Llama 3 8B Instruct (free)
+    Mistral: Mistral 7B Instruct (free)
+    Phi-3 Mini 128K Instruct (free)
+    Phi-3 Medium 128K Instruct (free)
+    MythoMist 7B (free)
+    OpenChat 3.5 7B (free)
+    Toppy M 7B (free)
+    Hugging Face: Zephyr 7B (free)
     """
 
-# Text To Speech
-def text_to_speech(text):
-    tts = gTTS(text=text, lang='en')
-    tts.save("tts_output.mp3")
-
-# Text To Speech
-def text_to_speech(text):
-    tts = gTTS(text=text, lang='en')
-    tts.save("tts_output.mp3")
-
+# Asynchronous Text To Speech
+async def text_to_speech(text, retries=3):
+    attempt = 0
+    while attempt < retries:
+        try:
+            tts = gTTS(text=text, lang='en')
+            # Run the blocking save operation in a separate thread
+            await asyncio.to_thread(tts.save, "tts_output.mp3")
+            break  # Exit the loop if successful
+        except Timeout:
+            attempt += 1
+            print(f"TTS API Timeout, retrying {attempt}/{retries}")
+            if attempt >= retries:
+                print("Max retries reached, skipping TTS.")
+                return
 @bot.event
 async def on_ready():
     await bot.tree.sync()
@@ -208,7 +218,8 @@ async def on_message(message):
         message_history[key].append({"role": "assistant", "name": personaname, "content": response})
 
         # Generate a TTS file
-        text_to_speech(response)
+        await text_to_speech(response)
+
 
         # Join VC to give reponse!
         author_voice_channel = None
