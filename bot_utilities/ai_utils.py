@@ -72,6 +72,12 @@ async def search(prompt):
         blob = "No search query is needed for a response"
     return blob
 
+async def extract_context(message, num_messages=5):
+    # Fetch last `num_messages` from the channel context
+    history = await message.channel.history(limit=num_messages).flatten()
+    # We reverse to keep the oldest message first
+    return list(reversed(history))
+
 async def fetch_models():
     models = await openai_client.models.list()
     return models
@@ -186,40 +192,122 @@ def pick_best_model(user_message, models):
 
     return best_model
 
-async def generate_react(history, user_message):
-    tone = vibe_check(user_message)
-    
-    if tone in ['funny', 'playful']:  # Decide when to use GIFs or emojis
+async def generate_react(message):
+    # Get the context (last 5 messages)
+    context = await extract_context(message)
+
+    # Perform sentiment analysis
+    sentiment = sentiment_analysis(message.content, context)
+
+    # Get the vibe based on sentiment
+    tone = vibe_check(sentiment)
+
+    # Decide whether to react with GIF, emoji, or text
+    if tone in ['funny', 'playful']:
         if random.random() > 0.5:  # Randomly choose between GIF or emoji
             return await gif_response(tone)
         else:
             return emoji_react(tone)
     else:
-        return await generate_response(instructions, search, history, user_message)
+        return await generate_response(message.content, sentiment, context)
 
-def vibe_check(user_message):
-    # Simple check based on keywords or sentiment analysis
-    if "haha" in user_message or "lol" in user_message:
+
+def sentiment_analysis(message, context):
+    # Combine context messages with the user's message for better sentiment analysis
+    combined_text = " ".join([msg["content"] for msg in context])
+    combined_text += " " + message
+
+    # Perform sentiment analysis using the NLP model
+    result = nlp_model(combined_text, candidate_labels=['funny', 'excited', 'neutral'])
+    
+    return result['labels'][0]  # Return the highest probability sentiment
+
+
+def vibe_check(sentiment):
+    # Return the appropriate tone based on the sentiment analysis
+    if sentiment == 'funny':
         return 'funny'
-    if "great" in user_message or "awesome" in user_message:
+    elif sentiment == 'excited':
         return 'excited'
-    return 'neutral'
+    elif sentiment == 'sad':
+        return 'sad'
+    elif sentiment == 'angry':
+        return 'angry'
+    elif sentiment == 'affectionate':
+        return 'affectionate'
+    elif sentiment == 'playful':
+        return 'playful'
+    elif sentiment == 'confused':
+        return 'confused'
+    elif sentiment == 'bored':
+        return 'bored'
+    elif sentiment == 'happy':
+        return 'happy'
+    elif sentiment == 'hungry':
+        return 'hungry'
+    elif sentiment == 'supportive':
+        return 'supportive'
+    else:
+        return 'neutral'  # Default to neutral if sentiment is unrecognized
+
 
 async def gif_response(tone):
-    gifs = {
-        'funny': "/gif funny",
-        'excited': "/gif excited",
-        'neutral': "/gif neutral"
+    gif_categories = {
+        'funny': 'laugh',        
+        'excited': 'dance',      
+        'sad': 'cry',            
+        'neutral': 'shrug',      
+        'affectionate': 'hug',   
+        'angry': 'punch',        
+        'playful': 'poke',       
+        'confused': 'facepalm',  # Example for a confused sentiment
+        'bored': 'bored',        # Directly map boredom
+        'happy': 'happy',        
+        'hungry': 'nom',         
+        'supportive': 'highfive' 
     }
-    return gifs.get(tone, "/gif random")  # Default to a random gif
+
+    category = gif_categories.get(tone, 'random')  # Default to 'random' if no match
+
+    base_url = "https://nekos.best/api/v2/"
+    url = f"{base_url}{category}"
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    return "/gif random"  # Fallback to random if error
+
+                json_data = await response.json()
+                results = json_data.get("results")
+                if not results:
+                    return "/gif random"  # Fallback to random if no results
+
+                gif_url = results[0].get("url")
+                return gif_url  # Return the URL to be used in the message
+        except Exception as e:
+            print(f"Error fetching GIF: {e}")
+            return "/gif random"  # Fallback to random if an exception occurs
+
 
 def emoji_react(tone):
     emojis = {
-        'funny': '😂',
-        'excited': '😃',
-        'neutral': '🙂'
+        'funny': '😂',          # Laughing face
+        'excited': '😃',        # Grinning face with big eyes
+        'neutral': '🙂',        # Slightly smiling face
+        'sad': '😢',            # Crying face
+        'angry': '😡',          # Angry face
+        'affectionate': '❤️',    # Red heart
+        'playful': '😜',        # Winking face with tongue
+        'confused': '😕',       # Confused face
+        'bored': '😒',          # Unamused face
+        'happy': '😊',          # Smiling face with smiling eyes
+        'hungry': '🍕',         # Pizza emoji (you can change this to other food emojis)
+        'supportive': '💪'      # Flexed bicep
     }
-    return emojis.get(tone, '👍')  # Default to thumbs-up emoji
+    
+    # Default to thumbs-up emoji if the tone is not recognized
+    return emojis.get(tone, '👍')
 
 
 async def generate_response(instructions, search, history, user_message):

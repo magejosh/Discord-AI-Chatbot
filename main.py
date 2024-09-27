@@ -20,7 +20,7 @@ from gtts import gTTS
 from requests.exceptions import Timeout
 import pyttsx3
 
-from bot_utilities.ai_utils import generate_response, generate_image_prodia, search, poly_image_gen, generate_gpt4_response, dall_e_gen, sdxl_image_gen
+from bot_utilities.ai_utils import generate_response, generate_image_prodia, search, poly_image_gen, generate_gpt4_response, dall_e_gen, sdxl_image_gen, sentiment_analysis, vibe_check, gif_response, emoji_react
 from bot_utilities.response_util import split_response, translate_to_en, get_random_prompt
 from bot_utilities.discord_util import check_token, get_discord_token
 from bot_utilities.config_loader import config, load_current_language, load_instructions
@@ -237,51 +237,72 @@ async def process_message(message):
     if key not in message_history:
         message_history[key] = []
 
-    # Get the last 3-5 messages from the channel (excluding bot messages)
+    # Get the last 5 messages from the channel (excluding bot messages)
     async for msg in message.channel.history(limit=5, oldest_first=False):
         if msg.author != bot.user:
             message_history[key].append({"role": "user", "content": msg.content})
 
     message_history[key] = message_history[key][-MAX_HISTORY:]  # Trim to the allowed message history
 
-    search_results = await search(message.content)
+    # **Sentiment analysis and vibe-check**
+    context_history = message_history[key]  # This is the context passed to sentiment analysis
+    sentiment = sentiment_analysis(message.content, context_history)  # Define this in ai_utils.py
 
-    message_history[key].append({"role": "user", "content": message.content})  # Add the current message to history
-    history = message_history[key]
+    # **Vibe-check to decide between text, GIF, or emoji**
+    response_type = vibe_check(sentiment)  # Use the sentiment to decide the response
 
-    async with message.channel.typing():
-        response = await generate_response(instructions=instructions, search=search_results, history=history, user_message=message.content)
-        if internet_access:
-            await message.remove_reaction("💬", bot.user)
-    
-    message_history[key].append({"role": "assistant", "name": personaname, "content": response})
+    # Random roll between 1 and 3 to decide how to respond
+    response_decision = random.randint(1, 3)  # Rolls a number between 1 and 3
 
-    # Generate a TTS file
-    await text_to_speech(response)
+    text_response = None  # Initialize text_response to avoid UnboundLocalError
 
-    # Respond with TTS in voice channel if applicable
-    author_voice_channel = None
-    if message.guild:
-        author_member = message.guild.get_member(message.author.id)
-        if author_member and author_member.voice:
-            author_voice_channel = author_member.voice.channel
+    if response_decision == 1:
+        # Respond with all three: GIF, emoji, and text
+        gif_url = await gif_response(response_type)  # Generate GIF response
+        emoji_response = emoji_react(response_type)  # Generate emoji reaction
+        search_results = await search(message.content)
+        text_response = await generate_response(instructions=instructions, search=search_results, history=context_history, user_message=message.content)
 
-    if author_voice_channel:
-        voice_channel = await author_voice_channel.connect()
-        voice_channel.play(discord.FFmpegPCMAudio(executable="ffmpeg", source="tts_output.mp3"))
-        while voice_channel.is_playing():
-            await asyncio.sleep(1)
-        await voice_channel.disconnect()
+        # Send all three responses
+        await message.channel.send(gif_url)  # Send the GIF
+        await message.add_reaction(emoji_response)  # Add the emoji reaction
+        await message.reply(text_response, allowed_mentions=discord.AllowedMentions.none(), suppress_embeds=True)  # Send the text response
 
-    # Respond to the message in text form
-    if response is not None:
-        for chunk in split_response(response):
-            try:
-                await message.reply(chunk, allowed_mentions=discord.AllowedMentions.none(), suppress_embeds=True)
-            except:
-                await message.channel.send("There was an error in delivering the message.")
+    elif response_decision == 2:
+        # Respond with a GIF based on sentiment
+        gif_url = await gif_response(response_type)
+        await message.channel.send(gif_url)  # Send the GIF URL directly in the chat
+
+    elif response_decision == 3:
+        # Respond with an emoji reaction
+        emoji_response = emoji_react(response_type)
+        await message.add_reaction(emoji_response)  # Add an emoji reaction to the message
+
     else:
-        await message.reply("There was an error in delivering the message.")
+        # Generate a regular text response (if needed)
+        search_results = await search(message.content)
+        text_response = await generate_response(instructions=instructions, search=search_results, history=context_history, user_message=message.content)
+
+        # Respond to the message in text form
+        if text_response is not None:
+            for chunk in split_response(text_response):
+                try:
+                    await message.reply(chunk, allowed_mentions=discord.AllowedMentions.none(), suppress_embeds=True)
+                except:
+                    await message.channel.send("There was an error in delivering the message.")
+        else:
+            await message.reply("There was an error in delivering the message.")
+
+    if internet_access:
+        await message.remove_reaction("💬", bot.user)
+
+    # Add the response to message history
+    if text_response:  # Ensure text_response exists before adding it to message history
+        message_history[key].append({"role": "assistant", "name": personaname, "content": text_response})
+
+    # Generate a TTS file if applicable
+    if text_response:
+        await text_to_speech(text_response)
 
 
 
