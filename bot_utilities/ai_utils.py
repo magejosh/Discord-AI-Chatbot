@@ -186,6 +186,42 @@ def pick_best_model(user_message, models):
 
     return best_model
 
+async def generate_react(history, user_message):
+    tone = vibe_check(user_message)
+    
+    if tone in ['funny', 'playful']:  # Decide when to use GIFs or emojis
+        if random.random() > 0.5:  # Randomly choose between GIF or emoji
+            return await gif_response(tone)
+        else:
+            return emoji_react(tone)
+    else:
+        return await generate_response(instructions, search, history, user_message)
+
+def vibe_check(user_message):
+    # Simple check based on keywords or sentiment analysis
+    if "haha" in user_message or "lol" in user_message:
+        return 'funny'
+    if "great" in user_message or "awesome" in user_message:
+        return 'excited'
+    return 'neutral'
+
+async def gif_response(tone):
+    gifs = {
+        'funny': "/gif funny",
+        'excited': "/gif excited",
+        'neutral': "/gif neutral"
+    }
+    return gifs.get(tone, "/gif random")  # Default to a random gif
+
+def emoji_react(tone):
+    emojis = {
+        'funny': '😂',
+        'excited': '😃',
+        'neutral': '🙂'
+    }
+    return emojis.get(tone, '👍')  # Default to thumbs-up emoji
+
+
 async def generate_response(instructions, search, history, user_message):
     search_results = search if search is not None else "Search feature is disabled"
     messages = [
@@ -203,6 +239,7 @@ async def generate_response(instructions, search, history, user_message):
     retries = 3  # Maximum number of retries
     selected_model = None
 
+    # Messages to use when delaying due to rate limits
     delay_messages = [
         "Let me think about it for a minute...",
         "Give me a moment to process that...",
@@ -212,6 +249,10 @@ async def generate_response(instructions, search, history, user_message):
         "That's just like your opinion though. Idk what mine even is...",
         "Just a sec, processing..."
     ]
+
+    # Exponential backoff settings for rate-limited retries
+    initial_delay = 10  # 10 seconds initial delay for rate-limited retries
+    backoff_factor = 2  # Delay multiplier for exponential backoff
 
     for attempt in range(retries):
         if attempt == 0 or not selected_model:  # First try or if the previous model fails
@@ -251,14 +292,28 @@ async def generate_response(instructions, search, history, user_message):
                 thinking_message = random.choice(delay_messages)
                 print(thinking_message)  # This can be sent as a response in Discord
 
-                # Introduce a delay before retrying (adjust the delay time as needed)
-                await asyncio.sleep(10)  # Delay for 10 seconds
+                # Introduce exponential backoff before retrying
+                delay_time = initial_delay * (backoff_factor ** attempt)
+                await asyncio.sleep(delay_time)  # Delay increases with each retry
+
+                # Pick a new model for the next attempt
+                selected_model = pick_best_model(user_message, models)
+
+            elif "520" in str(e):  # Handle specific server error 520
+                print(f"520 error: Server issue for {model_name}, skipping...")
+
+                # If a server error, choose another model and continue
+                selected_model = pick_best_model(user_message, models)
+
             else:
                 print(f"Error generating response from {model_name}: {e}")
             selected_model = None  # Reset selected_model to pick another one
             continue
 
     return "Failed to generate a response after multiple attempts."
+
+
+
 
 async def generate_gpt4_response(prompt):
     messages = [
