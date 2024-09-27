@@ -1,0 +1,583 @@
+<?xml version="1.0" encoding="utf-8"?>
+<models>
+
+	<providers>
+	    <provider name="openrouter" api_route="https://openrouter.ai/api/v1" api_key="@OPENROUTER_KEY"/>
+	</providers>	
+	
+		<model name="meta-llama/llama-3.2-11b-vision-instruct:free">
+			<parameters>
+				<context length="131K"/>
+				<max output="4,096"/>
+				<model source="meta-llama"/>
+				<cost>
+					<input tokens="$0/M"/>
+					<output tokens="$0/M"/>
+					<input imgs="$0/K"/>
+				</cost>
+				<model_settings>
+					<property name="messages">
+						<property name="role" value="user" content="What is the meaning of life?"/>
+					</property>
+					<property name="top_p" value="1"/>
+					<property name="temperature" value="0"/>
+					<property name="frequency_penalty" value="1"/>
+					<property name="presence_penalty" value="0"/>					
+					<property name="repetition_penalty" value="1"/>
+					<property name="top_k" value="0"/>
+					<property name="provider" value="openrouter"/>
+				</model_settings>
+			</parameters>
+			<tags>
+                <cost tags="free"/>
+                <capability tags="image-captioning, visual-question-answering, visual-reasoning, language-generation, multimodal-integration, content-creation, customer-service, research"/>
+                <modality tags="multimodal, text, vision"/>
+            </tags>
+			<permissions>
+				<property name="can_use_paid_models" value="false"/>
+				<property name="can_access_vision_models" value="true"/>
+			</permissions>
+		</model>
+		
+        <model name="google/gemini-flash-8b-1.5-exp">
+            <parameters>
+                <context length="4M"/>
+                <max output="32,768"/>
+                <model source="google"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="min_p" value="0"/>
+                    <property name="top_a" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="visual-understanding, classification, summarization, content-creation, high-volume, high-frequency, chat-assistants, on-demand-content-generation"/>
+                <modality tags="multimodal, text, vision, audio, video"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="true"/>
+            </permissions>
+        </model>
+
+
+        <model name="google/gemini-flash-1.5-exp">
+            <parameters>
+                <context length="4M"/>
+                <max output="32,768"/>
+                <model source="google"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="visual-understanding, classification, summarization, content-creation, high-volume, high-frequency, chat-assistants, on-demand-content-generation"/>
+                <modality tags="multimodal, text, vision, audio, video"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="true"/>
+            </permissions>
+        </model>
+
+
+        <model name="nousresearch/hermes-3-llama-3.1-405b:free">
+            <parameters>
+                <context length="131K"/>
+                <max output="4,096"/>
+                <model source="nousresearch"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="agentic, roleplaying, reasoning, multi-turn-conversation, function-calling, structured-output, generalist, code-generation,advanded-agent"/>
+                <modality tags="text"/>
+            </tags>
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="google/gemini-pro-1.5-exp">
+            <parameters>
+                <context length="4M"/>
+                <max output="32,768"/>
+                <model source="google"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="multimodal-tasks, experimental"/>
+                <modality tags="multimodal, text, vision"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="true"/>
+            </permissions>
+        </model>
+
+
+        <model name="meta-llama/llama-3.1-8b-instruct:free">
+            <parameters>
+                <context length="131K"/>
+                <max output="4,096"/>
+                <model source="meta-llama"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="instruction-following, general-purpose"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="qwen/qwen-2-7b-instruct:free">
+            <parameters>
+                <context length="33K"/>
+                <max output="4,096"/>
+                <model source="qwen"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="multilingual, coding, mathematics, reasoning, language-understanding"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="google/gemma-2-9b-it:free">
+            <parameters>
+                <context length="8K"/>
+                <max output="4,096"/>
+                <model source="google"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="general-purpose, developer-tools, research"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="mistralai/mistral-7b-instruct:free">
+            <parameters>
+                <context length="33K"/>
+                <max output="4,096"/>
+                <model source="mistralai"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="general-purpose, high-performance, speed-optimized"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="microsoft/phi-3-mini-128k-instruct:free">
+            <parameters>
+                <context length="128K"/>
+                <max output="4,096"/>
+                <model source="microsoft"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="advanced-reasoning, mathematics, code-processing, instruction-following"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="microsoft/phi-3-medium-128k-instruct:free">
+            <parameters>
+                <context length="128K"/>
+                <max output="4,096"/>
+                <model source="microsoft"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="advanced-reasoning, mathematics, code-processing, instruction-following, logical-reasoning, MMLU"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="meta-llama/llama-3-8b-instruct:free">
+            <parameters>
+                <context length="8K"/>
+                <max output="4,096"/>
+                <model source="meta-llama"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="dialogue, instruction-following, human-evaluation, general-purpose"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="gryphe/mythomist-7b:free">
+            <parameters>
+                <context length="33K"/>
+                <max output="4,096"/>
+                <model source="gryphe"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="roleplaying, dialogue, merged-model, general-purpose"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="openchat/openchat-7b:free">
+            <parameters>
+                <context length="8K"/>
+                <max output="4,096"/>
+                <model source="openchat"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="general-purpose, dialogue, reinforcement-learning, open-source"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="undi95/toppy-m-7b:free">
+            <parameters>
+                <context length="4K"/>
+                <max output="2,048"/>
+                <model source="undi95"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="roleplaying, merge, general-purpose, uncensored"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+
+
+        <model name="huggingfaceh4/zephyr-7b-beta:free">
+            <parameters>
+                <context length="4K"/>
+                <max output="2,048"/>
+                <model source="huggingfaceh4"/>
+                <cost>
+                    <input tokens="$0/M"/>
+                    <output tokens="$0/M"/>
+                    <input imgs="$0/K"/>
+                </cost>
+                <model_settings>
+                    <property name="messages">
+                        <property name="role" value="user" content="What is the meaning of life?"/>
+                    </property>
+                    <property name="top_p" value="1"/>
+                    <property name="temperature" value="0"/>
+                    <property name="frequency_penalty" value="1"/>
+                    <property name="presence_penalty" value="0"/>                    
+                    <property name="repetition_penalty" value="1"/>
+                    <property name="top_k" value="0"/>
+                    <property name="provider" value="openrouter"/>
+                </model_settings>
+            </parameters>
+            <tags>
+                <cost tags="free"/>
+                <capability tags="assistant, preference-optimized, general-purpose"/>
+                <modality tags="text"/>
+            </tags>
+
+            <permissions>
+                <property name="can_use_paid_models" value="false"/>
+                <property name="can_access_vision_models" value="false"/>
+            </permissions>
+        </model>
+		
+	
+</models>

@@ -4,13 +4,16 @@ from datetime import datetime
 import re
 import asyncio
 import time
+import xml.etree.ElementTree as ET
 import random
 import asyncio
+import os
+import numpy as np
 from urllib.parse import quote
 from bot_utilities.config_loader import load_current_language, config
 from openai import AsyncOpenAI
-import os
 from dotenv import load_dotenv
+from transformers import pipeline
 
 load_dotenv()
 current_language = load_current_language()
@@ -73,30 +76,217 @@ async def fetch_models():
     models = await openai_client.models.list()
     return models
 
-async def generate_response(instructions, search, history):
+# Load the models from models.xml
+def load_models_from_xml(file_path):
+    try:
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+
+        models = []
+        for model in root.findall('model'):
+            name = model.get('name')  # Get 'name' attribute directly from <model> tag
+            context_length = model.find('./parameters/context').get('length') if model.find('./parameters/context') is not None else None
+            max_output = model.find('./parameters/max').get('output') if model.find('./parameters/max') is not None else None
+            source = model.find('./parameters/model').get('source') if model.find('./parameters/model') is not None else None
+            cost_input = model.find('./parameters/cost/input').get('tokens') if model.find('./parameters/cost/input') is not None else None
+            cost_output = model.find('./parameters/cost/output').get('tokens') if model.find('./parameters/cost/output') is not None else None
+            cost_imgs = model.find('./parameters/cost/input').get('imgs') if model.find('./parameters/cost/input') is not None else None
+
+            # Check if required elements are missing
+            if not all([name, context_length, source]):
+                print(f"Missing essential data for model: name={name}, context_length={context_length}, source={source}")
+                continue
+
+            # Parse model settings (optional properties)
+            model_settings = {}
+            for prop in model.findall('./parameters/model_settings/property'):
+                prop_name = prop.get('name')
+                prop_value = prop.get('value')
+                if prop_name and prop_value:
+                    model_settings[prop_name] = prop_value
+
+            # Parse tags
+            tags = []
+            for tag in model.findall('./tags/*'):
+                tags.append(f"{tag.tag}: {tag.get('tags')}")
+
+            # Parse permissions
+            permissions = {}
+            for perm in model.findall('./permissions/property'):
+                perm_name = perm.get('name')
+                perm_value = perm.get('value')
+                if perm_name and perm_value:
+                    permissions[perm_name] = perm_value
+
+            # Construct model data
+            model_data = {
+                'name': name,
+                'context_length': context_length,
+                'max_output': max_output,
+                'source': source,
+                'cost_input_tokens': cost_input,
+                'cost_output_tokens': cost_output,
+                'cost_input_imgs': cost_imgs,
+                'model_settings': model_settings,
+                'tags': tags,
+                'permissions': permissions,
+                'free': any("free" in tag for tag in tags)  # Mark model as free if 'free' is present in tags
+            }
+
+            models.append(model_data)
+
+        return models
+
+    except ET.ParseError as e:
+        print(f"Error parsing the XML file: {e}")
+        return []
+    except Exception as e:
+        print(f"Unexpected error while loading models from XML: {e}")
+        return []
+
+# Get a free model from the models list
+def get_free_model(models):
+    free_models = [model for model in models if model['free']]
+    return random.choice(free_models) if free_models else None
+
+
+# Load a zero-shot-classification model for better semantic understanding
+# nlp_model = pipeline("zero-shot-classification")
+# Specify model and revision
+# nlp_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", revision="d7645e1")
+nlp_model = pipeline(
+    "zero-shot-classification", 
+    model="facebook/bart-large-mnli", 
+    revision="d7645e1", 
+    tokenizer_kwargs={"clean_up_tokenization_spaces": False}
+)
+
+
+# Function to analyze user input and pick the best model
+def pick_best_model(user_message, models):
+    candidate_labels = [model['tags'] for model in models]  # Using the tags for each model
+    candidate_names = [model['name'] for model in models]
+
+    # Use NLP model to match the message with the best model based on its capabilities
+    result = nlp_model(user_message, candidate_labels)
+
+    # Adding logging for debugging
+    print(f"Result Scores: {result['scores']}")
+    print(f"Labels: {result['labels']}")
+
+    # Ensure the index is an integer, selecting the model with the highest score
+    best_model_idx = int(np.argmax(result['scores']))  # Make sure it's an integer index
+
+    # Adding more logging to confirm the selected model
+    print(f"Best model index: {best_model_idx}")
+    print(f"Selected model: {models[best_model_idx]['name']}")
+
+    best_model = models[best_model_idx]
+    print(f"Model selected for response: {best_model['name']}")
+
+    return best_model
+
+async def generate_response(instructions, search, history, user_message):
     search_results = search if search is not None else "Search feature is disabled"
     messages = [
-            {"role": "system", "name": "instructions", "content": instructions},
-            *history,
-            {"role": "system", "name": "search_results", "content": search_results},
-        ]
-    response = await openai_client.chat.completions.create(
-        model=config['GPT_MODEL'],
-        messages=messages
-    )
-    message = response.choices[0].message.content
-    return message
+        {"role": "system", "name": "instructions", "content": instructions},
+        *history,
+        {"role": "system", "name": "search_results", "content": search_results},
+    ]
+
+    # Load models from models.xml
+    models_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../config/models.xml'))
+    print(f"Loading models from: {models_file_path}")
+
+    models = load_models_from_xml(models_file_path)
+
+    retries = 3  # Maximum number of retries
+    selected_model = None
+
+    delay_messages = [
+        "Let me think about it for a minute...",
+        "Give me a moment to process that...",
+        "Hold on, I need to gather my thoughts...",
+        "Thinking deeply about your message...",
+        "I need more spoons for this...",
+        "That's just like your opinion though. Idk what mine even is...",
+        "Just a sec, processing..."
+    ]
+
+    for attempt in range(retries):
+        if attempt == 0 or not selected_model:  # First try or if the previous model fails
+            selected_model = pick_best_model(user_message, models)
+            if not selected_model:
+                return "No valid models available to generate a response."
+
+        model_name = selected_model['name']
+        print(f"Attempting to generate response using model: {model_name}")
+
+        try:
+            response = await openai_client.chat.completions.create(
+                model=model_name,
+                messages=messages
+            )
+
+            # Log the full response for debugging
+            print(f"Raw response from {model_name}: {response}")
+
+            if response and hasattr(response, 'choices'):
+                try:
+                    if len(response.choices) > 0 and hasattr(response.choices[0], 'message'):
+                        message = response.choices[0].message.content
+                        print(f"Successfully generated response with {model_name}")
+                        return message
+                except (AttributeError, IndexError) as e:
+                    print(f"Unexpected response structure from {model_name}: {e}")
+                    continue  # Try the next model
+            else:
+                print(f"No valid choices in the response from {model_name}. Trying next model...")
+
+        except Exception as e:
+            if "rate limited" in str(e).lower():
+                print(f"Rate limit hit for {model_name}, trying next model...")
+
+                # Respond to the user with a random "thinking" message
+                thinking_message = random.choice(delay_messages)
+                print(thinking_message)  # This can be sent as a response in Discord
+
+                # Introduce a delay before retrying (adjust the delay time as needed)
+                await asyncio.sleep(10)  # Delay for 10 seconds
+            else:
+                print(f"Error generating response from {model_name}: {e}")
+            selected_model = None  # Reset selected_model to pick another one
+            continue
+
+    return "Failed to generate a response after multiple attempts."
 
 async def generate_gpt4_response(prompt):
     messages = [
-            {"role": "system", "name": "admin_user", "content": prompt},
-        ]
-    response = await openai_client.chat.chat.completions.create(
-        model='meta-llama/llama-3.2-11b-vision-instruct:free',
-        messages=messages
-    )
-    message = response.choices[0].message.content
-    return message
+        {"role": "system", "name": "admin_user", "content": prompt},
+    ]
+    
+    try:
+        response = await openai_client.chat.completions.create(
+            model='google/gemini-flash-8b-1.5-exp',
+            messages=messages
+        )
+    except Exception as e:
+        print(f"Error while generating GPT-4 response: {e}")
+        return "An error occurred while generating the GPT-4 response."
+
+    # Check if the response contains the expected structure
+    if response and hasattr(response, 'choices'):
+        try:
+            message = response.choices[0].message.content
+            return message
+        except (AttributeError, IndexError) as e:
+            print(f"Unexpected GPT-4 response structure: {e}")
+            return "Received an unexpected GPT-4 response."
+    else:
+        print("No valid choices in the GPT-4 response.")
+        return "No valid GPT-4 response was generated from the model."
+
+
 
 async def poly_image_gen(session, prompt):
     seed = random.randint(1, 100000)
@@ -111,22 +301,23 @@ async def poly_image_gen(session, prompt):
 #             return await response.read()
 
 async def dall_e_gen(model, prompt, size, num_images):
-#    response = await openai_client.chat.images.generate(
-    response = await openai_client.images.generate(
-        model=model,
-        prompt=prompt,
-        n=num_images,
-        size=size,
-    )
-    imagefileobjs = []
-    for image in response.data:
-        image_url = image.url
-        async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=60)  # Timeout set to 60 seconds
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        response = await openai_client.images.generate(
+            model=model,
+            prompt=prompt,
+            n=num_images,
+            size=size,
+        )
+        imagefileobjs = []
+        for image in response.data:
+            image_url = image.url
             async with session.get(image_url) as response:
                 content = await response.content.read()
                 img_file_obj = io.BytesIO(content)
                 imagefileobjs.append(img_file_obj)
-    return imagefileobjs
+        return imagefileobjs
+
 
 async def sdxl_image_gen(prompt, size, num_images):
     response = await openai_client.images.generate(
@@ -138,7 +329,8 @@ async def sdxl_image_gen(prompt, size, num_images):
     imagefileobjs = []
     for image in response.data:
         image_url = image.url
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=60)  # Timeout set to 60 seconds
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(image_url) as response:
                 content = await response.content.read()
                 img_file_obj = io.BytesIO(content)
@@ -148,6 +340,7 @@ async def sdxl_image_gen(prompt, size, num_images):
 async def generate_image_prodia(prompt, model, sampler, seed, neg):
     print("\033[1;32m(Prodia) Creating image for :\033[0m", prompt)
     start_time = time.time()
+    timeout = aiohttp.ClientTimeout(total=60)  # Timeout set to 60 seconds
     async def create_job(prompt, model, sampler, seed, neg):
         negative = neg
         url = 'https://api.prodia.com/generate'
@@ -163,7 +356,7 @@ async def generate_image_prodia(prompt, model, sampler, seed, neg):
             'upscale': 'True',
             'aspect_ratio': 'square'
         }
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(url, params=params) as response:
                 data = await response.json()
                 return data['job']
@@ -175,7 +368,7 @@ async def generate_image_prodia(prompt, model, sampler, seed, neg):
         'accept': '*/*',
     }
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         while True:
             async with session.get(url, headers=headers) as response:
                 json = await response.json()
