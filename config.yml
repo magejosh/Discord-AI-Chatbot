@@ -21,12 +21,25 @@ Github: https://github.com/magejosh/Discord-AI-Chatbot
 
 TRIGGER:
   - Trader Jen
-  - Aerith
+  - magejosh
+  - Skynet
+  - Agent Smith
+  - Neo
+  - Morpheus
+  - Trinity
+  - Agent
+  - mage
+  - Electric Messiah
+  - Noble Madman
+  - drukpa kunley
+  - daikini
 # Define the triggers that the bot should always respond to when in message
 
 STATIC_PRESENCE: true
 PRESENCES:
   - 7 Days to Die
+  - The Imaginarium
+  - Mageworks.Studio
 # List of different presences to be used
 
 OCR_MODEL_URLS:

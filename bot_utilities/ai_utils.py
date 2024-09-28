@@ -14,6 +14,24 @@ from bot_utilities.config_loader import load_current_language, config
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from transformers import pipeline
+import logging
+import sys
+
+# Set up logging
+log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'logs.txt'))
+
+# Set up logging to output to both file and console
+logging.basicConfig(
+    level=logging.DEBUG,  # You can change this to INFO or ERROR based on preference
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file_path),
+        logging.StreamHandler(sys.stdout)  # Add this line to output to console
+    ]
+)
+
+# Add this in your initialization section, before running the bot
+logging.info("Logging system initialized.")
 
 load_dotenv()
 current_language = load_current_language()
@@ -82,25 +100,57 @@ async def fetch_models():
     models = await openai_client.models.list()
     return models
 
+def log_model_issue(issue, model_name, field_name):
+    """
+    Log an issue with a specific field in the model.
+    """
+    logging.error(f"Model '{model_name}' missing '{field_name}' field. Issue: {issue}")
+
 # Load the models from models.xml
 def load_models_from_xml(file_path):
     try:
+        # Parse the XML file
         tree = ET.parse(file_path)
         root = tree.getroot()
 
         models = []
-        for model in root.findall('model'):
-            name = model.get('name')  # Get 'name' attribute directly from <model> tag
-            context_length = model.find('./parameters/context').get('length') if model.find('./parameters/context') is not None else None
-            max_output = model.find('./parameters/max').get('output') if model.find('./parameters/max') is not None else None
-            source = model.find('./parameters/model').get('source') if model.find('./parameters/model') is not None else None
-            cost_input = model.find('./parameters/cost/input').get('tokens') if model.find('./parameters/cost/input') is not None else None
-            cost_output = model.find('./parameters/cost/output').get('tokens') if model.find('./parameters/cost/output') is not None else None
-            cost_imgs = model.find('./parameters/cost/input').get('imgs') if model.find('./parameters/cost/input') is not None else None
+        # Loop through each model in the XML
+        for model in root.findall('.//model'):
+            # Get model name
+            name = model.get('name')
+            if not name:
+                log_model_issue("Model is missing 'name' attribute", name, 'name')
+                continue  # Skip this model if the name is missing
 
-            # Check if required elements are missing
-            if not all([name, context_length, source]):
-                print(f"Missing essential data for model: name={name}, context_length={context_length}, source={source}")
+            # Get parameters
+            context_element = model.find('./parameters/context')
+            context_length = context_element.get('length') if context_element is not None else None
+            if context_length is None:
+                log_model_issue("Model is missing 'context length'", name, 'context length')
+
+            max_output_element = model.find('./parameters/max')
+            max_output = max_output_element.get('output') if max_output_element is not None else None
+            if max_output is None:
+                log_model_issue("Model is missing 'max output'", name, 'max output')
+
+            source_element = model.find('./parameters/model')
+            source = source_element.get('source') if source_element is not None else None
+            if source is None:
+                log_model_issue("Model is missing 'source'", name, 'source')
+
+            cost_input_element = model.find('./parameters/cost/input')
+            cost_input = cost_input_element.get('tokens') if cost_input_element is not None else None
+            if cost_input is None:
+                log_model_issue("Model is missing 'cost input tokens'", name, 'cost input')
+
+            cost_output_element = model.find('./parameters/cost/output')
+            cost_output = cost_output_element.get('tokens') if cost_output_element is not None else None
+            if cost_output is None:
+                log_model_issue("Model is missing 'cost output tokens'", name, 'cost output')
+
+            # Skip this model if essential data is missing
+            if not all([context_length, max_output, source, cost_input, cost_output]):
+                logging.error(f"Skipping model '{name}' due to missing essential data.")
                 continue
 
             # Parse model settings (optional properties)
@@ -111,10 +161,14 @@ def load_models_from_xml(file_path):
                 if prop_name and prop_value:
                     model_settings[prop_name] = prop_value
 
-            # Parse tags
+            # Parse tags and detect embedding models
             tags = []
+            is_embedding_model = False
             for tag in model.findall('./tags/*'):
-                tags.append(f"{tag.tag}: {tag.get('tags')}")
+                tag_value = tag.get('tags')
+                tags.append(f"{tag.tag}: {tag_value}")
+                if 'embedding' in tag_value:
+                    is_embedding_model = True
 
             # Parse permissions
             permissions = {}
@@ -124,7 +178,7 @@ def load_models_from_xml(file_path):
                 if perm_name and perm_value:
                     permissions[perm_name] = perm_value
 
-            # Construct model data
+            # Construct the model data
             model_data = {
                 'name': name,
                 'context_length': context_length,
@@ -132,23 +186,28 @@ def load_models_from_xml(file_path):
                 'source': source,
                 'cost_input_tokens': cost_input,
                 'cost_output_tokens': cost_output,
-                'cost_input_imgs': cost_imgs,
                 'model_settings': model_settings,
                 'tags': tags,
                 'permissions': permissions,
+                'is_embedding_model': is_embedding_model,
                 'free': any("free" in tag for tag in tags)  # Mark model as free if 'free' is present in tags
             }
 
+            # Log the successful parsing of the model
+            logging.info(f"Successfully parsed model '{name}'")
+
+            # Append the parsed model data
             models.append(model_data)
 
         return models
 
     except ET.ParseError as e:
-        print(f"Error parsing the XML file: {e}")
+        logging.error(f"Error parsing the XML file: {e}")
         return []
     except Exception as e:
-        print(f"Unexpected error while loading models from XML: {e}")
+        logging.error(f"Unexpected error while loading models from XML: {e}")
         return []
+
 
 # Get a free model from the models list
 def get_free_model(models):
@@ -167,30 +226,82 @@ nlp_model = pipeline(
     tokenizer_kwargs={"clean_up_tokenization_spaces": False}
 )
 
+async def semantic_analysis(user_input):
+    """
+    Analyzes the user's input using the zero-shot classification model to determine the appropriate tags.
+
+    Args:
+        user_input (str): The message to be analyzed.
+
+    Returns:
+        list: A list of relevant tags that are suited for the model to process the input.
+    """
+    candidate_labels = ['informative', 'funny', 'angry', 'supportive', 'neutral', 'helpful']
+
+    try:
+        # Use the zero-shot classification model with multi_label=True
+        result = nlp_model(user_input, candidate_labels, multi_label=True)
+        
+        # Log the labels and their corresponding scores
+        labels_scores = list(zip(result['labels'], result['scores']))
+        logging.info(f"Semantic analysis for '{user_input}': {labels_scores}")
+        
+        # You can set a threshold to consider which labels are relevant
+        threshold = 0.5  # Adjust based on your requirements
+        relevant_labels = [label for label, score in labels_scores if score >= threshold]
+        
+        return relevant_labels  # Return the list of relevant labels
+    except Exception as e:
+        logging.error(f"Error in semantic analysis: {e}")
+        return ['neutral']  # Fallback to neutral if there's an error
+
 
 # Function to analyze user input and pick the best model
 def pick_best_model(user_message, models):
-    candidate_labels = [model['tags'] for model in models]  # Using the tags for each model
-    candidate_names = [model['name'] for model in models]
+    """
+    This function analyzes user input and picks the best model based on the semantic analysis.
+    It adds more randomness to break ties between similar models and ensures provider alternation.
+    """
+    # Filter out embedding models
+    non_embedding_models = [model for model in models if not model['is_embedding_model']]
+    
+    # Check if there are non-embedding models available
+    if not non_embedding_models:
+        print("No available models to generate a response.")
+        return None
 
-    # Use NLP model to match the message with the best model based on its capabilities
-    result = nlp_model(user_message, candidate_labels)
+    # Flatten the candidate labels (tags)
+    candidate_labels = [' '.join(model['tags']) for model in non_embedding_models]
 
-    # Adding logging for debugging
-    print(f"Result Scores: {result['scores']}")
-    print(f"Labels: {result['labels']}")
+    # Perform zero-shot classification with multi_label=True
+    try:
+        result = nlp_model(user_message, candidate_labels, multi_label=True)
+    except Exception as e:
+        logging.error(f"Error in zero-shot classification: {e}")
+        return random.choice(non_embedding_models)  # Fallback
 
-    # Ensure the index is an integer, selecting the model with the highest score
-    best_model_idx = int(np.argmax(result['scores']))  # Make sure it's an integer index
+    # Log the scores and labels for debugging
+    logging.info(f"Result Scores: {result['scores']}")
+    logging.info(f"Labels: {result['labels']}")
 
-    # Adding more logging to confirm the selected model
-    print(f"Best model index: {best_model_idx}")
-    print(f"Selected model: {models[best_model_idx]['name']}")
+    # Introduce randomness among top 5 candidates
+    top_n_candidates = 5
+    sorted_indices = sorted(range(len(result['scores'])), key=lambda i: result['scores'][i], reverse=True)
+    top_indices = sorted_indices[:top_n_candidates]
+    top_models = [non_embedding_models[i] for i in top_indices]
 
-    best_model = models[best_model_idx]
-    print(f"Model selected for response: {best_model['name']}")
+    # Shuffle the top models to introduce randomness
+    random.shuffle(top_models)
+
+    # Log the randomized selection process
+    logging.info(f"Shuffled top models: {[model['name'] for model in top_models]}")
+
+    # Select the first model after shuffling
+    best_model = top_models[0]
+    logging.info(f"Selected model for response: {best_model['name']}")
 
     return best_model
+
 
 async def generate_react(message):
     # Get the context (last 5 messages)
@@ -212,44 +323,105 @@ async def generate_react(message):
         return await generate_response(message.content, sentiment, context)
 
 
-def sentiment_analysis(message, context):
-    # Combine context messages with the user's message for better sentiment analysis
-    combined_text = " ".join([msg["content"] for msg in context])
-    combined_text += " " + message
+async def sentiment_analysis(message, context, candidate_labels=None):
+    """
+    Analyzes the sentiment of the combined context and the current user message.
 
-    # Perform sentiment analysis using the NLP model
-    result = nlp_model(combined_text, candidate_labels=['funny', 'excited', 'neutral'])
-    
-    return result['labels'][0]  # Return the highest probability sentiment
+    Args:
+        message (str): The current message from the user.
+        context (list): A list of previous messages for context.
+        candidate_labels (list, optional): List of sentiment categories to classify the message.
+
+    Returns:
+        list: A list of labels indicating the sentiment of the message.
+    """
+    # Default candidate labels for sentiment analysis
+    if candidate_labels is None:
+        candidate_labels = ['funny', 'excited', 'neutral', 'angry', 'supportive', 'sad']
+
+    # Combine the context messages with the user's current message
+    combined_text = " ".join([msg["content"] for msg in context]) + " " + message
+
+    try:
+        # Limit the text length to avoid performance issues
+        combined_text = combined_text[:1000]  # Adjust as needed
+
+        # Use the zero-shot classification model with multi_label=True
+        result = await asyncio.wait_for(
+            asyncio.to_thread(nlp_model, combined_text, candidate_labels=candidate_labels, multi_label=True),
+            timeout=5
+        )
+
+        # Log the labels and their corresponding scores
+        labels_scores = list(zip(result['labels'], result['scores']))
+        logging.info(f"Sentiment analysis result: {labels_scores}")
+
+        # Apply a threshold to determine significant sentiments
+        threshold = 0.5  # Adjust based on your requirements
+        significant_sentiments = [label for label, score in labels_scores if score >= threshold]
+
+        return significant_sentiments  # Return the list of significant sentiments
+
+    except asyncio.TimeoutError:
+        logging.warning("Sentiment analysis timed out.")
+        return ['neutral']  # Default to 'neutral' if a timeout occurs
+
+    except Exception as e:
+        logging.error(f"Error during sentiment analysis: {e}")
+        return ['neutral']  # Fallback to neutral if an error occurs
 
 
-def vibe_check(sentiment):
-    # Return the appropriate tone based on the sentiment analysis
-    if sentiment == 'funny':
-        return 'funny'
-    elif sentiment == 'excited':
-        return 'excited'
-    elif sentiment == 'sad':
-        return 'sad'
-    elif sentiment == 'angry':
-        return 'angry'
-    elif sentiment == 'affectionate':
-        return 'affectionate'
-    elif sentiment == 'playful':
-        return 'playful'
-    elif sentiment == 'confused':
-        return 'confused'
-    elif sentiment == 'bored':
-        return 'bored'
-    elif sentiment == 'happy':
-        return 'happy'
-    elif sentiment == 'hungry':
-        return 'hungry'
-    elif sentiment == 'supportive':
-        return 'supportive'
-    else:
-        return 'neutral'  # Default to neutral if sentiment is unrecognized
 
+def vibe_check(sentiments):
+    """
+    Determines the appropriate tone(s) based on the sentiments analysis.
+
+    Args:
+        sentiments (list): A list of sentiment labels.
+
+    Returns:
+        list: A list of tones corresponding to the sentiments.
+    """
+    sentiment_to_tone = {
+        'funny': 'funny',
+        'excited': 'excited',
+        'sad': 'sad',
+        'angry': 'angry',
+        'affectionate': 'affectionate',
+        'playful': 'playful',
+        'confused': 'confused',
+        'bored': 'bored',
+        'happy': 'happy',
+        'hungry': 'hungry',
+        'supportive': 'supportive',
+        'neutral': 'neutral'
+    }
+
+    tones = [sentiment_to_tone.get(sentiment, 'neutral') for sentiment in sentiments]
+    # Remove duplicates while preserving order
+    tones = list(dict.fromkeys(tones))
+    return tones
+
+
+def get_weighted_probs(tone):
+    # Adjust these probabilities to make text responses more frequent
+    weightings = {
+        'funny': (0.7, 0.4, 0.3),       # High chance for text, moderate for GIF, low for emoji
+        'excited': (0.6, 0.4, 0.5),     # Higher chance for text, balanced GIF/emoji
+        'sad': (0.8, 0.3, 0.2),         # High chance for text, low for GIF and emoji
+        'angry': (0.8, 0.13, 0.81),       # High chance for text, low for GIF and emoji
+        'affectionate': (0.7, 0.5, 0.6),# High chance for text, moderate for GIF and emoji
+        'playful': (0.6, 0.5, 0.4),     # Higher chance for text, moderate for GIF, low for emoji
+        'confused': (0.17, 0.33, 0.63),    # High chance for text, low for GIF and emoji
+        'bored': (0.81, 0.3, 0.5),       # High chance for text, low for GIF and emoji
+        'happy': (0.6, 0.5, 0.4),       # Moderate chance for text, balanced GIF/emoji
+        'hungry': (0.2, 0.4, 0.7),      # Higher chance for text, moderate for GIF, high for emoji
+        'supportive': (0.81, 0.42, 0.69),  # High chance for text, moderate for GIF and emoji
+        'neutral': (0.81, 0.13, 0.23)      # Default: high chance for text, low for GIF and emoji
+    }
+
+    # Return default if no tone is found
+    return weightings.get(tone, (0.8, 0.3, 0.3))
 
 async def gif_response(tone):
     gif_categories = {
@@ -309,97 +481,228 @@ def emoji_react(tone):
     # Default to thumbs-up emoji if the tone is not recognized
     return emojis.get(tone, '👍')
 
+# Function to analyze user input and pick the best model
+def pick_model_based_on_tone(tone, models):
+    # Match the tone with relevant model tags
+    tag_mapping = {
+        'funny': ['humor', 'dialogue', 'lighthearted', 'casual'],
+        'excited': ['enthusiastic', 'high-energy', 'engaging'],
+        'sad': ['empathetic', 'supportive'],
+        'angry': ['argumentative', 'direct', 'persuasive'],
+        'affectionate': ['empathetic', 'supportive', 'caring'],
+        'playful': ['fun', 'interactive', 'lighthearted'],
+        'confused': ['clarifying', 'instructive'],
+        'bored': ['engaging', 'diverting', 'lighthearted'],
+        'happy': ['positive', 'friendly', 'enthusiastic'],
+        'hungry': ['food-related', 'recommendations', 'fun'],
+        'supportive': ['empathetic', 'encouraging', 'uplifting'],
+        'neutral': ['general', 'informative', 'neutral']
+    }
 
-async def generate_response(instructions, search, history, user_message):
+    candidate_labels = tag_mapping.get(tone, ['general', 'informative'])  # Default to neutral/informative tags if unrecognized
+
+    # Filter models based on matching tags
+    matching_models = []
+    for model in models:
+        model_tags = model['tags']
+        matching_score = len(set(model_tags).intersection(candidate_labels))
+        if matching_score > 0:
+            matching_models.append((model, matching_score))  # Append the model along with the match score
+
+    # If no exact match, fallback to a general-purpose model
+    if not matching_models:
+        print(f"No matching model tags for tone '{tone}', using default fallback.")
+        return random.choice(models)  # Fallback to any model if no match
+
+    # Sort models by matching score
+    matching_models.sort(key=lambda x: x[1], reverse=True)
+
+    # Return the model with the highest matching score
+    return matching_models[0][0]  # Return the model with the best score
+
+def pick_models_ordered_by_tone(tone, models):
+    # Sort models based on how closely their tags match the current tone
+    def model_match_score(model, tone):
+        tags = model.get('tags', [])
+        # Exclude embedding models from this selection process
+        if model.get('is_embedding_model'):
+            return 0
+        # Higher score if the model has tags closely related to the tone
+        return sum(1 for tag in tags if tone in tag.lower())
+
+    # Sort models by match score (descending)
+    sorted_models = sorted(models, key=lambda model: model_match_score(model, tone), reverse=True)
+
+    logging.info(f"Model order for tone '{tone}': {[model['name'] for model in sorted_models]}")
+
+    return sorted_models
+
+def pick_models_ordered_by_tones(tones, models):
+    """
+    Sorts models based on how closely their tags match the provided tones.
+
+    Args:
+        tones (list): A list of tones.
+        models (list): A list of available models.
+
+    Returns:
+        list: A list of models ordered by their match score.
+    """
+    def model_match_score(model, tones):
+        tags = model.get('tags', [])
+        # Exclude embedding models from this selection process
+        if model.get('is_embedding_model'):
+            return 0
+        # Calculate match score based on overlapping tags and tones
+        score = sum(1 for tag in tags for tone in tones if tone in tag.lower())
+        return score
+
+    # Sort models by match score (descending)
+    sorted_models = sorted(models, key=lambda model: model_match_score(model, tones), reverse=True)
+
+    logging.info(f"Model order for tones '{tones}': {[model['name'] for model in sorted_models]}")
+
+    return sorted_models
+
+
+async def generate_response(instructions, search, history, user_message, last_provider=None):
+    """
+    Generate a response based on the user's message, context, and the available models.
+    
+    Args:
+        instructions (str): System instructions for the chatbot.
+        search (str): The result of an internet search or search function.
+        history (list): A list of previous messages in the conversation context.
+        user_message (str): The current user message.
+        last_provider (str): The name of the provider used in the previous attempt (to alternate providers).
+    
+    Returns:
+        str: The generated response or an error message.
+    """
     search_results = search if search is not None else "Search feature is disabled"
+    
+    # Ensure history is properly formatted for the message array
+    history_messages = [{"role": "user", "content": msg["content"]} for msg in history]
+    
     messages = [
-        {"role": "system", "name": "instructions", "content": instructions},
-        *history,
-        {"role": "system", "name": "search_results", "content": search_results},
+        {"role": "system", "content": instructions},
+        *history_messages,
+        {"role": "system", "content": search_results},
+        {"role": "user", "content": user_message}
     ]
+
+    logging.info(f"Formatted messages being sent: {messages}")
 
     # Load models from models.xml
     models_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../config/models.xml'))
-    print(f"Loading models from: {models_file_path}")
+    logging.info(f"Loading models from: {models_file_path}")
 
     models = load_models_from_xml(models_file_path)
+    logging.info(f"Available models: {[model['name'] for model in models]}")
 
-    retries = 3  # Maximum number of retries
-    selected_model = None
+    retries = 2  # Number of retries per model
+    used_models = set()  # Track models we've already tried
+    delay_time = 2  # 2-second delay between switching models
 
-    # Messages to use when delaying due to rate limits
-    delay_messages = [
-        "Let me think about it for a minute...",
-        "Give me a moment to process that...",
-        "Hold on, I need to gather my thoughts...",
-        "Thinking deeply about your message...",
-        "I need more spoons for this...",
-        "That's just like your opinion though. Idk what mine even is...",
-        "Just a sec, processing..."
-    ]
+    logging.info(f"User message: {user_message}")
+    logging.info(f"Search results: {search_results}")
 
-    # Exponential backoff settings for rate-limited retries
-    initial_delay = 10  # 10 seconds initial delay for rate-limited retries
-    backoff_factor = 2  # Delay multiplier for exponential backoff
+    # Sentiment analysis and tone selection
+    logging.info("Performing sentiment analysis...")
+    sentiments = await sentiment_analysis(user_message, history)  # Now returns a list
+    logging.info(f"Sentiment analysis results: {sentiments}")
+    
+    tones = vibe_check(sentiments)  # Now returns a list of tones
+    logging.info(f"Tones after vibe check: {tones}")
+
+    # Pick a list of models ordered by tone relevance
+    model_order = pick_models_ordered_by_tones(tones, models)
+    logging.info(f"Model order based on tones: {[model['name'] for model in model_order]}")
 
     for attempt in range(retries):
-        if attempt == 0 or not selected_model:  # First try or if the previous model fails
-            selected_model = pick_best_model(user_message, models)
-            if not selected_model:
-                return "No valid models available to generate a response."
+        logging.info(f"Attempt #{attempt + 1}")
 
+        # Filter models by provider, alternating providers each attempt
+        for selected_model in model_order:
+            provider = selected_model.get('provider', 'openrouter')
+            if provider != last_provider:
+                break
+        else:
+            # If all remaining models are from the same provider, fallback to trying any model
+            logging.warning(f"All remaining models are from provider {last_provider}, retrying with the same provider.")
+            selected_model = model_order[0]
+
+        used_models.add(selected_model['name'])  # Mark this model as used
         model_name = selected_model['name']
-        print(f"Attempting to generate response using model: {model_name}")
+        last_provider = selected_model.get('provider', 'openrouter')
+
+        # Switch API key and base_url according to the provider
+        if last_provider == 'nagaAI':
+            api_key = os.getenv('NAGA_GPT_KEY')
+            base_url = 'https://api.naga.ac/v1'
+        else:
+            api_key = os.getenv('OPENROUTER_KEY')
+            base_url = 'https://openrouter.ai/api/v1'
+
+        openai_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+
+        logging.info(f"Attempting to generate response using model: {model_name} from {last_provider}")
 
         try:
+            start_time = time.time()  # Record the start time for this model
             response = await openai_client.chat.completions.create(
                 model=model_name,
                 messages=messages
             )
+            response_time = time.time() - start_time  # Calculate response time
 
             # Log the full response for debugging
-            print(f"Raw response from {model_name}: {response}")
+            logging.debug(f"Raw response from {model_name}: {response}")
+            logging.info(f"Response time for {model_name}: {response_time:.2f} seconds")
 
             if response and hasattr(response, 'choices'):
                 try:
                     if len(response.choices) > 0 and hasattr(response.choices[0], 'message'):
                         message = response.choices[0].message.content
-                        print(f"Successfully generated response with {model_name}")
+                        logging.info(f"Successfully generated response with {model_name}")
+                        logging.debug(f"Generated message: {message}")
                         return message
                 except (AttributeError, IndexError) as e:
-                    print(f"Unexpected response structure from {model_name}: {e}")
+                    logging.warning(f"Unexpected response structure from {model_name}: {e}")
                     continue  # Try the next model
             else:
-                print(f"No valid choices in the response from {model_name}. Trying next model...")
+                logging.warning(f"No valid choices in the response from {model_name}. Trying next model...")
 
         except Exception as e:
-            if "rate limited" in str(e).lower():
-                print(f"Rate limit hit for {model_name}, trying next model...")
+            logging.error(f"Error generating response from {model_name}: {e}")
+            await asyncio.sleep(delay_time)  # Apply a 2-second delay before switching to the next model
+            continue  # Continue to the next attempt with a new model
 
-                # Respond to the user with a random "thinking" message
-                thinking_message = random.choice(delay_messages)
-                print(thinking_message)  # This can be sent as a response in Discord
+    # **Fallback to `pick_best_model` if all other models fail**
+    logging.error("Failed to generate a response after multiple attempts. Falling back to `pick_best_model`.")
 
-                # Introduce exponential backoff before retrying
-                delay_time = initial_delay * (backoff_factor ** attempt)
-                await asyncio.sleep(delay_time)  # Delay increases with each retry
+    fallback_model = pick_best_model(user_message, models)
+    if fallback_model:
+        logging.info(f"Fallback to `pick_best_model` selected model: {fallback_model['name']}")
+        
+        # Retry the fallback model once
+        try:
+            response = await openai_client.chat.completions.create(
+                model=fallback_model['name'],
+                messages=messages
+            )
+            if response and hasattr(response, 'choices'):
+                try:
+                    if len(response.choices) > 0 and hasattr(response.choices[0], 'message'):
+                        message = response.choices[0].message.content
+                        logging.info(f"Successfully generated response with fallback model: {fallback_model['name']}")
+                        return message
+                except (AttributeError, IndexError) as e:
+                    logging.warning(f"Unexpected response structure from fallback model: {e}")
+        except Exception as e:
+            logging.error(f"Error generating response from fallback model: {e}")
 
-                # Pick a new model for the next attempt
-                selected_model = pick_best_model(user_message, models)
-
-            elif "520" in str(e):  # Handle specific server error 520
-                print(f"520 error: Server issue for {model_name}, skipping...")
-
-                # If a server error, choose another model and continue
-                selected_model = pick_best_model(user_message, models)
-
-            else:
-                print(f"Error generating response from {model_name}: {e}")
-            selected_model = None  # Reset selected_model to pick another one
-            continue
-
-    return "Failed to generate a response after multiple attempts."
-
+    return "Failed to generate a response after multiple attempts, including fallback."
 
 
 

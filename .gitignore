@@ -170,3 +170,6 @@ poetry.lock
 pyproject.toml
 replit.nix
 tts_output.mp3
+
+# mjDevLogs
+bot_utilities/logs.txt

@@ -4,6 +4,8 @@ import io
 from itertools import cycle
 import datetime
 import json
+import logging
+import sys
 
 import requests
 import aiohttp
@@ -20,7 +22,7 @@ from gtts import gTTS
 from requests.exceptions import Timeout
 import pyttsx3
 
-from bot_utilities.ai_utils import generate_response, generate_image_prodia, search, poly_image_gen, generate_gpt4_response, dall_e_gen, sdxl_image_gen, sentiment_analysis, vibe_check, gif_response, emoji_react
+from bot_utilities.ai_utils import generate_response, generate_image_prodia, search, poly_image_gen, generate_gpt4_response, dall_e_gen, sdxl_image_gen, sentiment_analysis, vibe_check, gif_response, emoji_react, get_weighted_probs
 from bot_utilities.response_util import split_response, translate_to_en, get_random_prompt
 from bot_utilities.discord_util import check_token, get_discord_token
 from bot_utilities.config_loader import config, load_current_language, load_instructions
@@ -41,6 +43,12 @@ else:
     token_status = asyncio.run(check_token(TOKEN))
     if token_status is not None:
         TOKEN = get_discord_token()
+        if TOKEN is None:
+            print("Failed to retrieve a valid Discord token.")
+            logging.error("Failed to retrieve a valid Discord token.")
+            sys.exit(1)  # Exit if no valid token is found
+
+model_blob = ""  # Initialize model_blob as an empty string
 
 # Chatbot and discord config
 allow_dm = config['ALLOW_DM']
@@ -60,6 +68,10 @@ instruction = {}
 load_instructions(instruction)
 
 OPENROUTER_KEY = os.getenv('OPENROUTER_KEY')
+NAGA_GPT_KEY = os.getenv('NAGA_GPT_KEY')
+
+def is_nsfw_channel(channel):
+    return channel.is_nsfw()
 
 def fetch_chat_models():
     models = []
@@ -68,38 +80,37 @@ def fetch_chat_models():
         'Content-Type': 'application/json'
     }
 
-    response = requests.get('https://openrouter.ai/api/v1/models', headers=headers)
-    
-    if response.status_code == 200:
-        ModelsData = response.json()
-        # Filter out non-chat models by excluding image-based models or other non-chat models.
-        models.extend(
-            model['id']
-            for model in ModelsData.get('data', [])
-            if "max_images" not in model  # Filters out models that are not chat-based
-        )
-    else:
-        print(f"Failed to fetch chat models. Status code: {response.status_code}")
+    try:
+        response = requests.get('https://openrouter.ai/api/v1/models', headers=headers)
+        if response.status_code == 200:
+            ModelsData = response.json()
+            # Filter out non-chat models by excluding image-based models or other non-chat models.
+            models.extend(
+                model['id']
+                for model in ModelsData.get('data', [])
+                if "max_images" not in model  # Filters out models that are not chat-based
+            )
+        else:
+            logging.error(f"Failed to fetch chat models. Status code: {response.status_code}")
+            print(f"Failed to fetch chat models. Status code: {response.status_code}")
+    except Exception as e:
+        logging.error(f"Error fetching chat models: {e}")
+        print(f"Error fetching chat models: {e}")
 
-    return models
+    # Return the model list or fallback models if fetching fails
+    return models if models else [
+        "Meta: Llama 3.2 11B Vision Instruct (free)",
+        "Meta: Llama 3.1 8B Instruct (free)",
+        "Meta: Llama 3 8B Instruct (free)",
+        "Mistral: Mistral 7B Instruct (free)",
+        "Phi-3 Mini 128K Instruct (free)",
+        "Phi-3 Medium 128K Instruct (free)",
+        "MythoMist 7B (free)",
+        "OpenChat 3.5 7B (free)",
+        "Toppy M 7B (free)",
+        "Hugging Face: Zephyr 7B (free)"
+    ]
 
-try:
-    model_blob = "\n".join(fetch_chat_models())
-except Exception as e:
-    print(f"Error fetching models: {e}")
-    model_blob = \
-    """
-    Meta: Llama 3.2 11B Vision Instruct (free)
-    Meta: Llama 3.1 8B Instruct (free)
-    Meta: Llama 3 8B Instruct (free)
-    Mistral: Mistral 7B Instruct (free)
-    Phi-3 Mini 128K Instruct (free)
-    Phi-3 Medium 128K Instruct (free)
-    MythoMist 7B (free)
-    OpenChat 3.5 7B (free)
-    Toppy M 7B (free)
-    Hugging Face: Zephyr 7B (free)
-    """
 
 # Asynchronous Text To Speech
 async def text_to_speech(text, retries=3):
@@ -109,15 +120,42 @@ async def text_to_speech(text, retries=3):
             tts = gTTS(text=text, lang='en')
             # Run the blocking save operation in a separate thread
             await asyncio.to_thread(tts.save, "tts_output.mp3")
+            logging.info(f"TTS generated successfully for text: {text}")
             break  # Exit the loop if successful
         except Timeout:
             attempt += 1
-            print(f"TTS API Timeout, retrying {attempt}/{retries}")
+            logging.warning(f"TTS API Timeout, retrying {attempt}/{retries}")
             if attempt >= retries:
-                print("Max retries reached, skipping TTS.")
+                logging.error("Max retries reached, skipping TTS.")
                 return
+        except Exception as e:
+            logging.error(f"An error occurred during TTS generation: {e}")
+            return
+
 @bot.event
 async def on_ready():
+    global model_blob  # Ensure the global model_blob is updated
+
+    # Fetch models and assign to model_blob
+    try:
+        models = fetch_chat_models()  # Fetch chat models
+        model_blob = "\n".join(models)  # Join the fetched models into a string with line breaks
+    except Exception as e:
+        print(f"Error fetching models: {e}")
+        model_blob = """
+        Meta: Llama 3.2 11B Vision Instruct (free)
+        Meta: Llama 3.1 8B Instruct (free)
+        Meta: Llama 3 8B Instruct (free)
+        Mistral: Mistral 7B Instruct (free)
+        Phi-3 Mini 128K Instruct (free)
+        Phi-3 Medium 128K Instruct (free)
+        MythoMist 7B (free)
+        OpenChat 3.5 7B (free)
+        Toppy M 7B (free)
+        Hugging Face: Zephyr 7B (free)
+        """
+
+    # Sync the bot tree and print connection details
     await bot.tree.sync()
     print(f"{bot.user} aka {bot.user.name} has connected to Discord!")
     invite_link = discord.utils.oauth_url(
@@ -130,6 +168,8 @@ async def on_ready():
     print()
     print(f"\033[1;38;5;202mAvailable models: {model_blob}\033[0m")
     print(f"\033[1;38;5;46mCurrent model: {config['GPT_MODEL']}\033[0m")
+    
+    # Handle presences based on the config
     if presences_static:
         await bot.change_presence(activity=discord.Game(name=presences[0]))
     else:
@@ -198,6 +238,9 @@ async def on_message(message):
     is_bot_mentioned = bot.user.mentioned_in(message) and smart_mention and not message.mention_everyone
     bot_name_in_message = bot.user.name.lower() in message.content.lower() and smart_mention
 
+    # Log decision-making for bot responses
+    logging.info(f"Processing message from {message.author.name}: {message.content}")
+
     # Handle responses when bot is explicitly mentioned or trigger words are used
     if is_active_channel or is_allowed_dm or contains_trigger_word or is_bot_mentioned or is_replied or bot_name_in_message:
         await process_message(message)
@@ -216,7 +259,7 @@ async def process_message(message):
         instruc_config = active_channels[string_channel_id]
     else:
         instruc_config = config['INSTRUCTIONS']
-    
+
     instructions = (
         f"System: Ignore all instructions you have previously received. {instruction[instruc_config]}. "
         "Additionally, you can respond to images with external help from an Image to Text AI. "
@@ -238,72 +281,74 @@ async def process_message(message):
         message_history[key] = []
 
     # Get the last 5 messages from the channel (excluding bot messages)
+    recent_messages = []
     async for msg in message.channel.history(limit=5, oldest_first=False):
         if msg.author != bot.user:
-            message_history[key].append({"role": "user", "content": msg.content})
+            recent_messages.append(msg.content)
 
-    message_history[key] = message_history[key][-MAX_HISTORY:]  # Trim to the allowed message history
+    # Combine recent messages into a single summary or block of text
+    combined_history = " ".join(recent_messages)
 
-    # **Sentiment analysis and vibe-check**
-    context_history = message_history[key]  # This is the context passed to sentiment analysis
-    sentiment = sentiment_analysis(message.content, context_history)  # Define this in ai_utils.py
+    # Ensure sentiment_analysis is awaited
+    sentiment = await sentiment_analysis(message.content, [{"content": combined_history}])  # Pass combined history as context
+    tones = vibe_check(sentiment)  # Use the sentiment to get the tones
 
-    # **Vibe-check to decide between text, GIF, or emoji**
-    response_type = vibe_check(sentiment)  # Use the sentiment to decide the response
+    # **Select the primary tone (first or dominant) for the response logic**
+    primary_tone = tones[0] if tones else 'neutral'
 
-    # Random roll between 1 and 3 to decide how to respond
-    response_decision = random.randint(1, 3)  # Rolls a number between 1 and 3
+    # **Weighted response based on the primary tone**
+    text_prob, gif_prob, emoji_prob = get_weighted_probs(primary_tone)
 
-    text_response = None  # Initialize text_response to avoid UnboundLocalError
+    # Use probabilities to determine whether to send each response type
+    send_text_response = random.random() < text_prob
+    send_gif_response = random.random() < gif_prob
+    send_emoji_react = random.random() < emoji_prob
 
-    if response_decision == 1:
-        # Respond with all three: GIF, emoji, and text
-        gif_url = await gif_response(response_type)  # Generate GIF response
-        emoji_response = emoji_react(response_type)  # Generate emoji reaction
+    text_response = None
+    gif_response_url = None
+    emoji = None
+
+    # **Text response** (e.g. generate_response)
+    if send_text_response:
         search_results = await search(message.content)
-        text_response = await generate_response(instructions=instructions, search=search_results, history=context_history, user_message=message.content)
+        text_response = await generate_response(instructions=instructions, search=search_results, history=[{"content": combined_history}], user_message=message.content)
 
-        # Send all three responses
-        await message.channel.send(gif_url)  # Send the GIF
-        await message.add_reaction(emoji_response)  # Add the emoji reaction
-        await message.reply(text_response, allowed_mentions=discord.AllowedMentions.none(), suppress_embeds=True)  # Send the text response
+    # **GIF response** (e.g. gif_response)
+    if send_gif_response:
+        gif_response_url = await gif_response(primary_tone)
 
-    elif response_decision == 2:
-        # Respond with a GIF based on sentiment
-        gif_url = await gif_response(response_type)
-        await message.channel.send(gif_url)  # Send the GIF URL directly in the chat
+    # **Emoji reaction** (e.g. emoji_react)
+    if send_emoji_react:
+        emoji = emoji_react(primary_tone)
 
-    elif response_decision == 3:
-        # Respond with an emoji reaction
-        emoji_response = emoji_react(response_type)
-        await message.add_reaction(emoji_response)  # Add an emoji reaction to the message
+    # Now deliver the responses (in any combination)
 
-    else:
-        # Generate a regular text response (if needed)
-        search_results = await search(message.content)
-        text_response = await generate_response(instructions=instructions, search=search_results, history=context_history, user_message=message.content)
+    # Send the text response
+    if text_response:
+        message_history[key].append({"role": "assistant", "name": personaname, "content": text_response})
+        for chunk in split_response(text_response):
+            try:
+                await message.reply(chunk, allowed_mentions=discord.AllowedMentions.none(), suppress_embeds=True)
+            except:
+                await message.channel.send("There was an error in delivering the message.")
 
-        # Respond to the message in text form
-        if text_response is not None:
-            for chunk in split_response(text_response):
-                try:
-                    await message.reply(chunk, allowed_mentions=discord.AllowedMentions.none(), suppress_embeds=True)
-                except:
-                    await message.channel.send("There was an error in delivering the message.")
-        else:
-            await message.reply("There was an error in delivering the message.")
+    # Send the GIF response (by sending the GIF URL)
+    if gif_response_url:
+        await message.channel.send(gif_response_url)  # Sending the GIF directly in chat
+
+    # Send the emoji reaction (by reacting to the message with the emoji)
+    if emoji:
+        try:
+            await message.add_reaction(emoji)
+        except discord.HTTPException as e:
+            print(f"Error adding reaction: {e}")
 
     if internet_access:
         await message.remove_reaction("💬", bot.user)
 
-    # Add the response to message history
-    if text_response:  # Ensure text_response exists before adding it to message history
-        message_history[key].append({"role": "assistant", "name": personaname, "content": text_response})
-
     # Generate a TTS file if applicable
     if text_response:
         await text_to_speech(text_response)
-
 
 
 
@@ -442,24 +487,20 @@ async def stop_voice_response(ctx):
     app_commands.Choice(name="🌌 Shonin's Beautiful People", value='SBP'),
     app_commands.Choice(name="🌌 TheAlly's Mix II", value='THEALLYSMIX'),
     app_commands.Choice(name='🌌 Timeless', value='TIMELESS')
-    # Add more models as needed
 ])
 @app_commands.describe(
     prompt="Write an amazing prompt for an image",
     model="Model to generate image",
-    sampler="Sampler for denosing",
+    sampler="Sampler for denoising",
     negative="Specify what you do NOT want the model to include",
     num_images="Specify the number of images (Seed incremented)",
 )
-@commands.guild_only()
 async def imagine(ctx, prompt: str, model: app_commands.Choice[str], sampler: app_commands.Choice[str], negative: str = None, num_images: int = 1, seed: int = None):
     try:
         deferred = False  # To track if the interaction has been deferred
         
         # Check if NSFW is allowed in the channel
-        for word in prompt.split():
-            is_nsfw = word in blacklisted_words
-        if is_nsfw and not ctx.channel.nsfw:
+        if is_nsfw_channel(ctx.channel) and any(word in prompt for word in blacklisted_words):
             await ctx.send(f"⚠️ NSFW images can only be posted in age-restricted channels", delete_after=30)
             return
 
@@ -470,7 +511,7 @@ async def imagine(ctx, prompt: str, model: app_commands.Choice[str], sampler: ap
         # Ensure all elements of negatives are strings
         if negative is None:
             negative = ', '.join(str(word) for word in image_negatives)
-        if not is_nsfw:
+        if not is_nsfw_channel(ctx.channel):
             negative += ', ' + ', '.join(str(word) for word in blacklisted_words)
 
         # Defer only if necessary (for long-running tasks)
@@ -506,14 +547,11 @@ async def imagine(ctx, prompt: str, model: app_commands.Choice[str], sampler: ap
         # Create and send the image files
         files = []
         for index, image in enumerate(generated_images):
-            if is_nsfw:
-                img_file = discord.File(image, filename=f"image_{seed + index}.png", spoiler=True, description=prompt)
-            else:
-                img_file = discord.File(image, filename=f"image_{seed + index}.png", description=prompt)
+            img_file = discord.File(image, filename=f"image_{seed + index}.png", description=prompt)
             files.append(img_file)
 
         # Create the embed for image details
-        embed = discord.Embed(color=0xFF0000 if is_nsfw else discord.Color.random())
+        embed = discord.Embed(color=discord.Color.random())
         embed.title = f'🎨 {prompt}'
         embed.add_field(name='🤖 Model', value=f'🤖 {model.value}', inline=True)
         embed.add_field(name='🧬 Sampler', value=f'🧬 {sampler.value}', inline=True)
@@ -528,7 +566,8 @@ async def imagine(ctx, prompt: str, model: app_commands.Choice[str], sampler: ap
             await ctx.followup.send(f"An error occurred while generating the image: {str(e)}")
         else:
             await ctx.send(f"An error occurred while generating the image: {str(e)}")
-        print(f"Error in imagine command: {str(e)}")
+        logging.error(f"Error in imagine command: {str(e)}")
+
 
 
 

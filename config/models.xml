@@ -2,582 +2,1461 @@
 <models>
 
 	<providers>
-	    <provider name="openrouter" api_route="https://openrouter.ai/api/v1" api_key="@OPENROUTER_KEY"/>
-	</providers>	
+
+        <provider name="nagaAI" api_route="https://api.naga.ac/v1" api_key="@NAGA_GPT_KEY">
+
+            <models>
+
+                <model name="BGE-LARGE-EN-V1.5">
+                    <parameters>
+                        <context length="8192"/>
+                        <max output="2048"/>
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1024" rate="0.00005"/>
+                            <output tokens="0"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Give me the best embedding"/>
+                            </property>
+                            <property name="temperature" value="0"/>
+                            <property name="top_p" value="1"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free"/>
+                        <capability tags="embedding"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="false"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 4000 per day</tier1>
+                        <tier2>15 per minute, 6000 per day</tier2>
+                        <tier3>25 per minute, 10000 per day</tier3>
+                        <tier4>40 per minute, 12000 per day</tier4>
+                    </limits>
+
+                </model>
+
+                <model name="CLAUDE-3-HAIKU-20240307">
+                    <parameters>
+                        <context length="4096"/>
+                        <max output="2048"/>
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1024" rate="0.000125"/>
+                            <output tokens="1024" rate="0.000625"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Write a short poem"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free"/>
+                        <capability tags="text-generation, summarization, haiku"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                     <limits>
+                        <free>1 per minute, 50 per day</free>
+                        <tier1>3 per minute, 100 per day</tier1>
+                        <tier2>3 per minute, 150 per day</tier2>
+                        <tier3>3 per minute, 250 per day</tier3>
+                        <tier4>5 per minute, 400 per day</tier4>
+                    </limits>
+
+               </model>
+
+                <model name="GPT-4O-MINI-2024-07-18">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming the context length as 4096 based on GPT-4 models -->
+                        <max output="2048"/>  <!-- Adjust if different max output is known -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.0000375"/>
+                            <output tokens="1000" rate="0.00015"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Respond to a complex inquiry"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, summarization, complex-reasoning"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 100 per day</free>
+                        <tier1>10 per minute, 2000 per day</tier1>
+                        <tier2>15 per minute, 3000 per day</tier2>
+                        <tier3>25 per minute, 5000 per day</tier3>
+                        <tier4>40 per minute, 8000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="GEMINI-1.5-PRO-EXP-0801">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length based on other Gemini models -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.00175"/>
+                            <output tokens="1000" rate="0.00525"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Respond with detailed, technical information"/>
+                            </property>
+                            <property name="temperature" value="0.6"/>
+                            <property name="top_p" value="0.85"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, technical-information, summarization"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>2 per minute, 25 per day</free>
+                        <tier1>4 per minute, 100 per day</tier1>
+                        <tier2>5 per minute, 200 per day</tier2>
+                        <tier3>5 per minute, 350 per day</tier3>
+                        <tier4>7 per minute, 500 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="GEMINI-1.5-PRO">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length based on other Gemini models -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.00175"/>
+                            <output tokens="1000" rate="0.00525"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Provide professional-level responses"/>
+                            </property>
+                            <property name="temperature" value="0.6"/>
+                            <property name="top_p" value="0.85"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, professional-responses, summarization"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>2 per minute, 25 per day</free>
+                        <tier1>4 per minute, 100 per day</tier1>
+                        <tier2>5 per minute, 200 per day</tier2>
+                        <tier3>5 per minute, 350 per day</tier3>
+                        <tier4>7 per minute, 500 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="GEMINI-1.5-FLASH">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length based on other Gemini models -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.00013125"/>
+                            <output tokens="1000" rate="0.00039375"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Quick responses with flash processing"/>
+                            </property>
+                            <property name="temperature" value="0.6"/>
+                            <property name="top_p" value="0.85"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, fast-response, summarization"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>2 per minute, 25 per day</free>
+                        <tier1>4 per minute, 100 per day</tier1>
+                        <tier2>5 per minute, 200 per day</tier2>
+                        <tier3>5 per minute, 350 per day</tier3>
+                        <tier4>7 per minute, 500 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="LLAMA-3.1-405B-INSTRUCT">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.00075"/>
+                            <output tokens="1000" rate="0.00075"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Detailed instruction-based responses"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following, summarization"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 100 per day</free>
+                        <tier1>10 per minute, 1000 per day</tier1>
+                        <tier2>15 per minute, 2500 per day</tier2>
+                        <tier3>25 per minute, 4500 per day</tier3>
+                        <tier4>40 per minute, 7000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="LLAMA-3.1-70B-INSTRUCT">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.000225"/>
+                            <output tokens="1000" rate="0.000225"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Detailed instruction-based responses"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following, summarization"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 100 per day</free>
+                        <tier1>10 per minute, 1000 per day</tier1>
+                        <tier2>15 per minute, 2500 per day</tier2>
+                        <tier3>25 per minute, 4500 per day</tier3>
+                        <tier4>40 per minute, 8000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="LLAMA-3.1-8B-INSTRUCT">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.00005"/>
+                            <output tokens="1000" rate="0.00005"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Detailed instruction-based responses"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following, summarization"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 1000 per day</tier1>
+                        <tier2>15 per minute, 2500 per day</tier2>
+                        <tier3>25 per minute, 5500 per day</tier3>
+                        <tier4>40 per minute, 10000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="LLAMA-3-70B-INSTRUCT">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.000325"/>
+                            <output tokens="1000" rate="0.001375"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Instruction-based large-scale responses"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, large-scale, instruction-following"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 100 per day</free>
+                        <tier1>10 per minute, 1000 per day</tier1>
+                        <tier2>15 per minute, 2500 per day</tier2>
+                        <tier3>25 per minute, 5500 per day</tier3>
+                        <tier4>40 per minute, 10000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="MIXTRAL-8X22B-INSTRUCT">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.00054"/>
+                            <output tokens="1000" rate="0.00054"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Instruction-based multi-turn conversation"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, high-performance, instruction-following"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 100 per day</free>
+                        <tier1>10 per minute, 1000 per day</tier1>
+                        <tier2>15 per minute, 2500 per day</tier2>
+                        <tier3>25 per minute, 5500 per day</tier3>
+                        <tier4>40 per minute, 10000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="COMMAND-R-PLUS">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.0015"/>
+                            <output tokens="1000" rate="0.0075"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Instruction-based responses for advanced scenarios"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following, advanced-comprehension"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 25 per day</free>
+                        <tier1>10 per minute, 1000 per day</tier1>
+                        <tier2>15 per minute, 2500 per day</tier2>
+                        <tier3>25 per minute, 5500 per day</tier3>
+                        <tier4>40 per minute, 10000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="COMMAND-R">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.00025"/>
+                            <output tokens="1000" rate="0.00075"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Instruction-based text generation for complex queries"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following, high-accuracy"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 50 per day</free>
+                        <tier1>10 per minute, 1000 per day</tier1>
+                        <tier2>15 per minute, 2500 per day</tier2>
+                        <tier3>25 per minute, 5500 per day</tier3>
+                        <tier4>40 per minute, 10000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="CODESTRAL-2405">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.0005"/>
+                            <output tokens="1000" rate="0.0015"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Code generation and related tasks"/>
+                            </property>
+                            <property name="temperature" value="0.6"/>
+                            <property name="top_p" value="0.95"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="code-generation, instruction-following"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 50 per day</free>
+                        <tier1>4 per minute, 400 per day</tier1>
+                        <tier2>5 per minute, 500 per day</tier2>
+                        <tier3>6 per minute, 650 per day</tier3>
+                        <tier4>8 per minute, 1000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="MISTRAL-LARGE-2407">
+                    <parameters>
+                        <context length="8192"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="4096"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.00075"/>
+                            <output tokens="1000" rate="0.00225"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Text generation and related tasks"/>
+                            </property>
+                            <property name="temperature" value="0.6"/>
+                            <property name="top_p" value="0.95"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 50 per day</free>
+                        <tier1>4 per minute, 400 per day</tier1>
+                        <tier2>5 per minute, 500 per day</tier2>
+                        <tier3>6 per minute, 650 per day</tier3>
+                        <tier4>8 per minute, 1000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="GPT-3.5-TURBO-0125">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="2048"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.000125"/>
+                            <output tokens="1000" rate="0.000375"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Text generation, conversation, and general tasks"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following, conversation"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 3000 per day</tier1>
+                        <tier2>15 per minute, 4500 per day</tier2>
+                        <tier3>25 per minute, 7500 per day</tier3>
+                        <tier4>40 per minute, 12000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="GPT-3.5-TURBO-1106">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="2048"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.00025"/>
+                            <output tokens="1000" rate="0.0005"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Text generation, conversation, and general tasks"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following, conversation"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 3000 per day</tier1>
+                        <tier2>15 per minute, 4500 per day</tier2>
+                        <tier3>25 per minute, 7500 per day</tier3>
+                        <tier4>40 per minute, 12000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="CLAUDE-3-HAIKU-20240307">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="2048"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.000125"/>
+                            <output tokens="1000" rate="0.000625"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Write a short poem or haiku"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, haiku, summarization"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>1 per minute, 50 per day</free>
+                        <tier1>3 per minute, 100 per day</tier1>
+                        <tier2>3 per minute, 150 per day</tier2>
+                        <tier3>3 per minute, 250 per day</tier3>
+                        <tier4>5 per minute, 400 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="GEMINI-PRO">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="2048"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.0000625"/>
+                            <output tokens="1000" rate="0.000125"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Engage in a conversation or perform text tasks"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, conversation, summarization"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 3000 per day</tier1>
+                        <tier2>15 per minute, 4500 per day</tier2>
+                        <tier3>25 per minute, 7500 per day</tier3>
+                        <tier4>40 per minute, 12000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="LLAMA-2-70B-CHAT">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="2048"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.0001166667"/>
+                            <output tokens="1000" rate="0.0001583333"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Engage in conversation or perform chat tasks"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="chat, text-generation, conversation"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 3000 per day</tier1>
+                        <tier2>15 per minute, 4500 per day</tier2>
+                        <tier3>25 per minute, 7500 per day</tier3>
+                        <tier4>40 per minute, 12000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="LLAMA-2-13B-CHAT">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="2048"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.0000583333"/>
+                            <output tokens="1000" rate="0.0000583333"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Engage in conversation or perform chat tasks"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="chat, text-generation, conversation"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 3000 per day</tier1>
+                        <tier2>15 per minute, 4500 per day</tier2>
+                        <tier3>25 per minute, 7500 per day</tier3>
+                        <tier4>40 per minute, 12000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="LLAMA-2-7B-CHAT">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="2048"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.0000333333"/>
+                            <output tokens="1000" rate="0.0000333333"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Engage in conversation or perform chat tasks"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="chat, text-generation, conversation"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 3000 per day</tier1>
+                        <tier2>15 per minute, 4500 per day</tier2>
+                        <tier3>25 per minute, 7500 per day</tier3>
+                        <tier4>40 per minute, 12000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="MISTRAL-7B-INSTRUCT">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="2048"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.0000333333"/>
+                            <output tokens="1000" rate="0.0000333333"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Provide detailed instructions or answers"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following, reasoning"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 3000 per day</tier1>
+                        <tier2>15 per minute, 4500 per day</tier2>
+                        <tier3>25 per minute, 7500 per day</tier3>
+                        <tier4>40 per minute, 12000 per day</tier4>
+                    </limits>
+                </model>
+
+                <model name="MIXTRAL-8X7B-INSTRUCT">
+                    <parameters>
+                        <context length="4096"/>  <!-- Assuming context length; adjust if needed -->
+                        <max output="2048"/>  <!-- Assuming max output length; adjust if needed -->
+                        <model source="nagaAI"/>
+                        <cost>
+                            <input tokens="1000" rate="0.000045"/>
+                            <output tokens="1000" rate="0.000045"/>
+                            <input imgs="0"/>
+                        </cost>
+                        <model_settings>
+                            <property name="messages">
+                                <property name="role" value="user" content="Follow the given instructions"/>
+                            </property>
+                            <property name="temperature" value="0.7"/>
+                            <property name="top_p" value="0.9"/>
+                        </model_settings>
+                    </parameters>
+                    <tags>
+                        <cost tags="free, limited"/>
+                        <capability tags="text-generation, instruction-following"/>
+                        <modality tags="text"/>
+                    </tags>
+                    <permissions>
+                        <property name="can_use_paid_models" value="true"/>
+                        <property name="can_access_vision_models" value="false"/>
+                    </permissions>
+                    <limits>
+                        <free>3 per minute, 200 per day</free>
+                        <tier1>10 per minute, 3000 per day</tier1>
+                        <tier2>15 per minute, 4500 per day</tier2>
+                        <tier3>25 per minute, 7500 per day</tier3>
+                        <tier4>40 per minute, 12000 per day</tier4>
+                    </limits>
+                </model>
+
+
+
+            </models>
+
+        </provider>
+
+        <provider name="openrouter" api_route="https://openrouter.ai/api/v1" api_key="@OPENROUTER_KEY">
 	
-		<model name="meta-llama/llama-3.2-11b-vision-instruct:free">
-			<parameters>
-				<context length="131K"/>
-				<max output="4,096"/>
-				<model source="meta-llama"/>
-				<cost>
-					<input tokens="$0/M"/>
-					<output tokens="$0/M"/>
-					<input imgs="$0/K"/>
-				</cost>
-				<model_settings>
-					<property name="messages">
-						<property name="role" value="user" content="What is the meaning of life?"/>
-					</property>
-					<property name="top_p" value="1"/>
-					<property name="temperature" value="0"/>
-					<property name="frequency_penalty" value="1"/>
-					<property name="presence_penalty" value="0"/>					
-					<property name="repetition_penalty" value="1"/>
-					<property name="top_k" value="0"/>
-					<property name="provider" value="openrouter"/>
-				</model_settings>
-			</parameters>
-			<tags>
-                <cost tags="free"/>
-                <capability tags="image-captioning, visual-question-answering, visual-reasoning, language-generation, multimodal-integration, content-creation, customer-service, research"/>
-                <modality tags="multimodal, text, vision"/>
-            </tags>
-			<permissions>
-				<property name="can_use_paid_models" value="false"/>
-				<property name="can_access_vision_models" value="true"/>
-			</permissions>
-		</model>
+            <model name="meta-llama/llama-3.2-11b-vision-instruct:free">
+                <parameters>
+                    <context length="131K"/>
+                    <max output="4,096"/>
+                    <model source="meta-llama"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>					
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="image-captioning, visual-question-answering, visual-reasoning, language-generation, multimodal-integration, content-creation, customer-service, research"/>
+                    <modality tags="multimodal, text, vision"/>
+                </tags>
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="true"/>
+                </permissions>
+            </model>
+            
+            <model name="google/gemini-flash-8b-1.5-exp">
+                <parameters>
+                    <context length="4M"/>
+                    <max output="32,768"/>
+                    <model source="google"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="min_p" value="0"/>
+                        <property name="top_a" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="visual-understanding, classification, summarization, content-creation, high-volume, high-frequency, chat-assistants, on-demand-content-generation"/>
+                    <modality tags="multimodal, text, vision, audio, video"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="true"/>
+                </permissions>
+            </model>
+
+
+            <model name="google/gemini-flash-1.5-exp">
+                <parameters>
+                    <context length="4M"/>
+                    <max output="32,768"/>
+                    <model source="google"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="visual-understanding, classification, summarization, content-creation, high-volume, high-frequency, chat-assistants, on-demand-content-generation"/>
+                    <modality tags="multimodal, text, vision, audio, video"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="true"/>
+                </permissions>
+            </model>
+
+
+            <model name="nousresearch/hermes-3-llama-3.1-405b:free">
+                <parameters>
+                    <context length="131K"/>
+                    <max output="4,096"/>
+                    <model source="nousresearch"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="agentic, roleplaying, reasoning, multi-turn-conversation, function-calling, structured-output, generalist, code-generation,advanded-agent"/>
+                    <modality tags="text"/>
+                </tags>
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="google/gemini-pro-1.5-exp">
+                <parameters>
+                    <context length="4M"/>
+                    <max output="32,768"/>
+                    <model source="google"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="multimodal-tasks, experimental"/>
+                    <modality tags="multimodal, text, vision"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="true"/>
+                </permissions>
+            </model>
+
+
+            <model name="meta-llama/llama-3.1-8b-instruct:free">
+                <parameters>
+                    <context length="131K"/>
+                    <max output="4,096"/>
+                    <model source="meta-llama"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="instruction-following, general-purpose"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="qwen/qwen-2-7b-instruct:free">
+                <parameters>
+                    <context length="33K"/>
+                    <max output="4,096"/>
+                    <model source="qwen"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="multilingual, coding, mathematics, reasoning, language-understanding"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="google/gemma-2-9b-it:free">
+                <parameters>
+                    <context length="8K"/>
+                    <max output="4,096"/>
+                    <model source="google"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="general-purpose, developer-tools, research"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="mistralai/mistral-7b-instruct:free">
+                <parameters>
+                    <context length="33K"/>
+                    <max output="4,096"/>
+                    <model source="mistralai"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="general-purpose, high-performance, speed-optimized"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="microsoft/phi-3-mini-128k-instruct:free">
+                <parameters>
+                    <context length="128K"/>
+                    <max output="4,096"/>
+                    <model source="microsoft"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="advanced-reasoning, mathematics, code-processing, instruction-following"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="microsoft/phi-3-medium-128k-instruct:free">
+                <parameters>
+                    <context length="128K"/>
+                    <max output="4,096"/>
+                    <model source="microsoft"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="advanced-reasoning, mathematics, code-processing, instruction-following, logical-reasoning, MMLU"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="meta-llama/llama-3-8b-instruct:free">
+                <parameters>
+                    <context length="8K"/>
+                    <max output="4,096"/>
+                    <model source="meta-llama"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="dialogue, instruction-following, human-evaluation, general-purpose"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="gryphe/mythomist-7b:free">
+                <parameters>
+                    <context length="33K"/>
+                    <max output="4,096"/>
+                    <model source="gryphe"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="roleplaying, dialogue, merged-model, general-purpose"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="openchat/openchat-7b:free">
+                <parameters>
+                    <context length="8K"/>
+                    <max output="4,096"/>
+                    <model source="openchat"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="general-purpose, dialogue, reinforcement-learning, open-source"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="undi95/toppy-m-7b:free">
+                <parameters>
+                    <context length="4K"/>
+                    <max output="2,048"/>
+                    <model source="undi95"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="roleplaying, merge, general-purpose, uncensored"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
+
+
+            <model name="huggingfaceh4/zephyr-7b-beta:free">
+                <parameters>
+                    <context length="4K"/>
+                    <max output="2,048"/>
+                    <model source="huggingfaceh4"/>
+                    <cost>
+                        <input tokens="$0/M"/>
+                        <output tokens="$0/M"/>
+                        <input imgs="$0/K"/>
+                    </cost>
+                    <model_settings>
+                        <property name="messages">
+                            <property name="role" value="user" content="What is the meaning of life?"/>
+                        </property>
+                        <property name="top_p" value="1"/>
+                        <property name="temperature" value="0"/>
+                        <property name="frequency_penalty" value="1"/>
+                        <property name="presence_penalty" value="0"/>                    
+                        <property name="repetition_penalty" value="1"/>
+                        <property name="top_k" value="0"/>
+                        <property name="provider" value="openrouter"/>
+                    </model_settings>
+                </parameters>
+                <tags>
+                    <cost tags="free"/>
+                    <capability tags="assistant, preference-optimized, general-purpose"/>
+                    <modality tags="text"/>
+                </tags>
+
+                <permissions>
+                    <property name="can_use_paid_models" value="false"/>
+                    <property name="can_access_vision_models" value="false"/>
+                </permissions>
+            </model>
 		
-        <model name="google/gemini-flash-8b-1.5-exp">
-            <parameters>
-                <context length="4M"/>
-                <max output="32,768"/>
-                <model source="google"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="min_p" value="0"/>
-                    <property name="top_a" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="visual-understanding, classification, summarization, content-creation, high-volume, high-frequency, chat-assistants, on-demand-content-generation"/>
-                <modality tags="multimodal, text, vision, audio, video"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="true"/>
-            </permissions>
-        </model>
-
-
-        <model name="google/gemini-flash-1.5-exp">
-            <parameters>
-                <context length="4M"/>
-                <max output="32,768"/>
-                <model source="google"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="visual-understanding, classification, summarization, content-creation, high-volume, high-frequency, chat-assistants, on-demand-content-generation"/>
-                <modality tags="multimodal, text, vision, audio, video"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="true"/>
-            </permissions>
-        </model>
-
-
-        <model name="nousresearch/hermes-3-llama-3.1-405b:free">
-            <parameters>
-                <context length="131K"/>
-                <max output="4,096"/>
-                <model source="nousresearch"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="agentic, roleplaying, reasoning, multi-turn-conversation, function-calling, structured-output, generalist, code-generation,advanded-agent"/>
-                <modality tags="text"/>
-            </tags>
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="google/gemini-pro-1.5-exp">
-            <parameters>
-                <context length="4M"/>
-                <max output="32,768"/>
-                <model source="google"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="multimodal-tasks, experimental"/>
-                <modality tags="multimodal, text, vision"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="true"/>
-            </permissions>
-        </model>
-
-
-        <model name="meta-llama/llama-3.1-8b-instruct:free">
-            <parameters>
-                <context length="131K"/>
-                <max output="4,096"/>
-                <model source="meta-llama"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="instruction-following, general-purpose"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="qwen/qwen-2-7b-instruct:free">
-            <parameters>
-                <context length="33K"/>
-                <max output="4,096"/>
-                <model source="qwen"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="multilingual, coding, mathematics, reasoning, language-understanding"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="google/gemma-2-9b-it:free">
-            <parameters>
-                <context length="8K"/>
-                <max output="4,096"/>
-                <model source="google"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="general-purpose, developer-tools, research"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="mistralai/mistral-7b-instruct:free">
-            <parameters>
-                <context length="33K"/>
-                <max output="4,096"/>
-                <model source="mistralai"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="general-purpose, high-performance, speed-optimized"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="microsoft/phi-3-mini-128k-instruct:free">
-            <parameters>
-                <context length="128K"/>
-                <max output="4,096"/>
-                <model source="microsoft"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="advanced-reasoning, mathematics, code-processing, instruction-following"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="microsoft/phi-3-medium-128k-instruct:free">
-            <parameters>
-                <context length="128K"/>
-                <max output="4,096"/>
-                <model source="microsoft"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="advanced-reasoning, mathematics, code-processing, instruction-following, logical-reasoning, MMLU"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="meta-llama/llama-3-8b-instruct:free">
-            <parameters>
-                <context length="8K"/>
-                <max output="4,096"/>
-                <model source="meta-llama"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="dialogue, instruction-following, human-evaluation, general-purpose"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="gryphe/mythomist-7b:free">
-            <parameters>
-                <context length="33K"/>
-                <max output="4,096"/>
-                <model source="gryphe"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="roleplaying, dialogue, merged-model, general-purpose"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="openchat/openchat-7b:free">
-            <parameters>
-                <context length="8K"/>
-                <max output="4,096"/>
-                <model source="openchat"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="general-purpose, dialogue, reinforcement-learning, open-source"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="undi95/toppy-m-7b:free">
-            <parameters>
-                <context length="4K"/>
-                <max output="2,048"/>
-                <model source="undi95"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="roleplaying, merge, general-purpose, uncensored"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-
-
-        <model name="huggingfaceh4/zephyr-7b-beta:free">
-            <parameters>
-                <context length="4K"/>
-                <max output="2,048"/>
-                <model source="huggingfaceh4"/>
-                <cost>
-                    <input tokens="$0/M"/>
-                    <output tokens="$0/M"/>
-                    <input imgs="$0/K"/>
-                </cost>
-                <model_settings>
-                    <property name="messages">
-                        <property name="role" value="user" content="What is the meaning of life?"/>
-                    </property>
-                    <property name="top_p" value="1"/>
-                    <property name="temperature" value="0"/>
-                    <property name="frequency_penalty" value="1"/>
-                    <property name="presence_penalty" value="0"/>                    
-                    <property name="repetition_penalty" value="1"/>
-                    <property name="top_k" value="0"/>
-                    <property name="provider" value="openrouter"/>
-                </model_settings>
-            </parameters>
-            <tags>
-                <cost tags="free"/>
-                <capability tags="assistant, preference-optimized, general-purpose"/>
-                <modality tags="text"/>
-            </tags>
-
-            <permissions>
-                <property name="can_use_paid_models" value="false"/>
-                <property name="can_access_vision_models" value="false"/>
-            </permissions>
-        </model>
-		
+        </provider>
+        
+    </providers>
 	
 </models>
