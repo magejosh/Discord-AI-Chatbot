@@ -20,13 +20,20 @@ import sys
 # Set up logging
 log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'logs.txt'))
 
-# Set up logging to output to both file and console
+class UnicodeStreamHandler(logging.StreamHandler):
+    def __init__(self, stream=None):
+        super().__init__(stream)
+        if stream is None:
+            stream = sys.stdout
+        if hasattr(stream, 'encoding') and stream.encoding.lower() != 'utf-8':
+            self.setStream(open(stream.fileno(), mode='w', encoding='utf-8', buffering=1))
+
 logging.basicConfig(
-    level=logging.DEBUG,  # You can change this to INFO or ERROR based on preference
+    level=logging.DEBUG,  # Set to DEBUG to see all messages
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_file_path),
-        logging.StreamHandler(sys.stdout)  # Add this line to output to console
+        logging.FileHandler(log_file_path, encoding='utf-8'),
+        UnicodeStreamHandler(sys.stdout)
     ]
 )
 
@@ -115,38 +122,24 @@ def load_models_from_xml(file_path):
 
         models = []
         # Loop through each model in the XML
-        for model in root.findall('.//model'):
+        for model_element in root.findall('.//model'):
             # Get model name
-            name = model.get('name')
+            name = model_element.get('name')
             if not name:
-                log_model_issue("Model is missing 'name' attribute", name, 'name')
+                logging.error("Model is missing 'name' attribute")
                 continue  # Skip this model if the name is missing
 
             # Get parameters
-            context_element = model.find('./parameters/context')
+            context_element = model_element.find('./parameters/context')
             context_length = context_element.get('length') if context_element is not None else None
-            if context_length is None:
-                log_model_issue("Model is missing 'context length'", name, 'context length')
-
-            max_output_element = model.find('./parameters/max')
+            max_output_element = model_element.find('./parameters/max')
             max_output = max_output_element.get('output') if max_output_element is not None else None
-            if max_output is None:
-                log_model_issue("Model is missing 'max output'", name, 'max output')
-
-            source_element = model.find('./parameters/model')
+            source_element = model_element.find('./parameters/model')
             source = source_element.get('source') if source_element is not None else None
-            if source is None:
-                log_model_issue("Model is missing 'source'", name, 'source')
-
-            cost_input_element = model.find('./parameters/cost/input')
+            cost_input_element = model_element.find('./parameters/cost/input')
             cost_input = cost_input_element.get('tokens') if cost_input_element is not None else None
-            if cost_input is None:
-                log_model_issue("Model is missing 'cost input tokens'", name, 'cost input')
-
-            cost_output_element = model.find('./parameters/cost/output')
+            cost_output_element = model_element.find('./parameters/cost/output')
             cost_output = cost_output_element.get('tokens') if cost_output_element is not None else None
-            if cost_output is None:
-                log_model_issue("Model is missing 'cost output tokens'", name, 'cost output')
 
             # Skip this model if essential data is missing
             if not all([context_length, max_output, source, cost_input, cost_output]):
@@ -155,7 +148,7 @@ def load_models_from_xml(file_path):
 
             # Parse model settings (optional properties)
             model_settings = {}
-            for prop in model.findall('./parameters/model_settings/property'):
+            for prop in model_element.findall('./parameters/model_settings/property'):
                 prop_name = prop.get('name')
                 prop_value = prop.get('value')
                 if prop_name and prop_value:
@@ -164,15 +157,16 @@ def load_models_from_xml(file_path):
             # Parse tags and detect embedding models
             tags = []
             is_embedding_model = False
-            for tag in model.findall('./tags/*'):
-                tag_value = tag.get('tags')
-                tags.append(f"{tag.tag}: {tag_value}")
-                if 'embedding' in tag_value:
-                    is_embedding_model = True
+            for tag_element in model_element.findall('./tags/tag'):
+                tag_value = tag_element.get('value')
+                if tag_value:
+                    tags.append(tag_value)
+                    if 'embedding' in tag_value.lower():
+                        is_embedding_model = True
 
             # Parse permissions
             permissions = {}
-            for perm in model.findall('./permissions/property'):
+            for perm in model_element.findall('./permissions/property'):
                 perm_name = perm.get('name')
                 perm_value = perm.get('value')
                 if perm_name and perm_value:
@@ -190,7 +184,8 @@ def load_models_from_xml(file_path):
                 'tags': tags,
                 'permissions': permissions,
                 'is_embedding_model': is_embedding_model,
-                'free': any("free" in tag for tag in tags)  # Mark model as free if 'free' is present in tags
+                'free': any("free" in tag.lower() for tag in tags),  # Mark model as free if 'free' is present in tags
+                'provider': source_element.get('provider') if source_element is not None else 'openrouter'
             }
 
             # Log the successful parsing of the model
@@ -207,6 +202,7 @@ def load_models_from_xml(file_path):
     except Exception as e:
         logging.error(f"Unexpected error while loading models from XML: {e}")
         return []
+
 
 
 # Get a free model from the models list
@@ -263,11 +259,11 @@ def pick_best_model(user_message, models):
     It adds more randomness to break ties between similar models and ensures provider alternation.
     """
     # Filter out embedding models
-    non_embedding_models = [model for model in models if not model['is_embedding_model']]
+    non_embedding_models = [model for model in models if not model.get('is_embedding_model', False)]
     
     # Check if there are non-embedding models available
     if not non_embedding_models:
-        print("No available models to generate a response.")
+        logging.error("No available models to generate a response.")
         return None
 
     # Flatten the candidate labels (tags)
@@ -551,14 +547,17 @@ def pick_models_ordered_by_tones(tones, models):
     def model_match_score(model, tones):
         tags = model.get('tags', [])
         # Exclude embedding models from this selection process
-        if model.get('is_embedding_model'):
+        if model.get('is_embedding_model', False):
             return 0
         # Calculate match score based on overlapping tags and tones
-        score = sum(1 for tag in tags for tone in tones if tone in tag.lower())
+        score = sum(1 for tag in tags for tone in tones if tone.lower() in tag.lower())
         return score
 
+    # Filter out embedding models before sorting
+    filtered_models = [model for model in models if not model.get('is_embedding_model', False)]
+
     # Sort models by match score (descending)
-    sorted_models = sorted(models, key=lambda model: model_match_score(model, tones), reverse=True)
+    sorted_models = sorted(filtered_models, key=lambda model: model_match_score(model, tones), reverse=True)
 
     logging.info(f"Model order for tones '{tones}': {[model['name'] for model in sorted_models]}")
 
@@ -600,6 +599,12 @@ async def generate_response(instructions, search, history, user_message, last_pr
     models = load_models_from_xml(models_file_path)
     logging.info(f"Available models: {[model['name'] for model in models]}")
 
+    # Filter out embedding models
+    models = [model for model in models if not model.get('is_embedding_model', False)]
+    if not models:
+        logging.error("No non-embedding models available to generate a response.")
+        return "I'm unable to generate a response at this time."
+
     retries = 2  # Number of retries per model
     used_models = set()  # Track models we've already tried
     delay_time = 2  # 2-second delay between switching models
@@ -619,11 +624,17 @@ async def generate_response(instructions, search, history, user_message, last_pr
     model_order = pick_models_ordered_by_tones(tones, models)
     logging.info(f"Model order based on tones: {[model['name'] for model in model_order]}")
 
+    if not model_order:
+        logging.error("No models available after ordering by tone.")
+        return "I'm unable to select a suitable model to generate a response."
+
     for attempt in range(retries):
         logging.info(f"Attempt #{attempt + 1}")
 
         # Filter models by provider, alternating providers each attempt
         for selected_model in model_order:
+            if selected_model['name'] in used_models:
+                continue  # Skip models we've already tried
             provider = selected_model.get('provider', 'openrouter')
             if provider != last_provider:
                 break
@@ -643,6 +654,10 @@ async def generate_response(instructions, search, history, user_message, last_pr
         else:
             api_key = os.getenv('OPENROUTER_KEY')
             base_url = 'https://openrouter.ai/api/v1'
+
+        if not api_key:
+            logging.error(f"API key for provider {last_provider} is not set.")
+            continue
 
         openai_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
@@ -684,7 +699,22 @@ async def generate_response(instructions, search, history, user_message, last_pr
     fallback_model = pick_best_model(user_message, models)
     if fallback_model:
         logging.info(f"Fallback to `pick_best_model` selected model: {fallback_model['name']}")
-        
+
+        # Switch API key and base_url according to the provider
+        last_provider = fallback_model.get('provider', 'openrouter')
+        if last_provider == 'nagaAI':
+            api_key = os.getenv('NAGA_GPT_KEY')
+            base_url = 'https://api.naga.ac/v1'
+        else:
+            api_key = os.getenv('OPENROUTER_KEY')
+            base_url = 'https://openrouter.ai/api/v1'
+
+        if not api_key:
+            logging.error(f"API key for provider {last_provider} is not set.")
+            return "I'm unable to generate a response at this time."
+
+        openai_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+
         # Retry the fallback model once
         try:
             response = await openai_client.chat.completions.create(

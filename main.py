@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 import sys
+import re
 
 import requests
 import aiohttp
@@ -112,17 +113,32 @@ def fetch_chat_models():
     ]
 
 
-# Asynchronous Text To Speech
+# Function to remove emojis from the text
+def remove_emojis(text):
+    emoji_pattern = re.compile("["
+                           u"\U0001F600-\U0001F64F"  # emoticons
+                           u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                           u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                           u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                           u"\U00002500-\U00002BEF"  # chinese characters and others
+                           u"\U00002702-\U000027B0"  # Dingbats
+                           u"\U0001F004"             # Mahjong tile
+                           u"\U0001F0CF"             # Playing card
+                           "]+", flags=re.UNICODE)
+    return emoji_pattern.sub(r'', text)
+
+# Asynchronous Text To Speech with emoji handling
 async def text_to_speech(text, retries=3):
     attempt = 0
+    clean_text = remove_emojis(text)  # Remove emojis before processing text
     while attempt < retries:
         try:
-            tts = gTTS(text=text, lang='en')
-            # Run the blocking save operation in a separate thread
+            tts = gTTS(text=clean_text, lang='en')
+            # Run the blocking save operation in a separate thread to avoid blocking async loop
             await asyncio.to_thread(tts.save, "tts_output.mp3")
-            logging.info(f"TTS generated successfully for text: {text}")
+            logging.info(f"TTS generated successfully for text: {clean_text}")
             break  # Exit the loop if successful
-        except Timeout:
+        except TimeoutError:
             attempt += 1
             logging.warning(f"TTS API Timeout, retrying {attempt}/{retries}")
             if attempt >= retries:
