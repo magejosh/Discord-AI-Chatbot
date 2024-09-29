@@ -7,42 +7,6 @@
 
             <models>
 
-                <model name="BGE-LARGE-EN-V1.5">
-                    <parameters>
-                        <context length="8192"/>
-                        <max output="2048"/>
-                        <model source="nagaAI"/>
-                        <cost>
-                            <input tokens="1024" rate="0.00005"/>
-                            <output tokens="0"/>
-                            <input imgs="0"/>
-                        </cost>
-                        <model_settings>
-                            <property name="messages">
-                                <property name="role" value="user" content="Give me the best embedding"/>
-                            </property>
-                            <property name="temperature" value="0"/>
-                            <property name="top_p" value="1"/>
-                        </model_settings>
-                    </parameters>
-                    <tags>
-                        <cost tags="free"/>
-                        <capability tags="embedding"/>
-                        <modality tags="text"/>
-                    </tags>
-                    <permissions>
-                        <property name="can_use_paid_models" value="false"/>
-                        <property name="can_access_vision_models" value="false"/>
-                    </permissions>
-                    <limits>
-                        <free>3 per minute, 200 per day</free>
-                        <tier1>10 per minute, 4000 per day</tier1>
-                        <tier2>15 per minute, 6000 per day</tier2>
-                        <tier3>25 per minute, 10000 per day</tier3>
-                        <tier4>40 per minute, 12000 per day</tier4>
-                    </limits>
-
-                </model>
 
                 <model name="CLAUDE-3-HAIKU-20240307">
                     <parameters>

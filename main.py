@@ -213,7 +213,7 @@ personaname = config['INSTRUCTIONS'].title()
 replied_messages = {}
 active_channels = {}
 
-INTERJECTION_CHANCE = 0.95  # 5% chance to interject in regular conversations
+INTERJECTION_CHANCE = 0.95  # 95% chance to interject in regular conversations, set high for dev/testing. Ideally this becomes a variable chance based on the chat history.
 COOLDOWN_TIME = 60  # Bot will wait at least 60 seconds before replying again
 
 # Track the last time the bot responded to prevent it from spamming

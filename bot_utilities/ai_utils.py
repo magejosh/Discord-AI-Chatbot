@@ -16,6 +16,14 @@ from dotenv import load_dotenv
 from transformers import pipeline
 import logging
 import sys
+from datetime import datetime, timedelta  # Import timedelta here
+
+# Initialize the dictionaries and lists
+failed_models = {}
+rate_limited_models = {}
+tertiary_list = []
+secondary_list = []
+
 
 # Set up logging
 log_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'logs.txt'))
@@ -48,6 +56,19 @@ openai_client = AsyncOpenAI(
     api_key = os.getenv('OPENROUTER_KEY'),
     base_url = "https://openrouter.ai/api/v1"
 )
+
+# Initialize the models to track
+def initialize_model_tracking(models):
+    """
+    Initializes the failure and rate-limited tracking for models.
+    This should be called once when loading models.
+    """
+    global failed_models, rate_limited_models
+    for model in models:
+        model_name = model['name']
+        failed_models[model_name] = {'count': 0, 'last_attempt': None}
+        rate_limited_models[model_name] = {'count': 0, 'last_attempt': None}
+
 
 async def search(prompt):
     """
@@ -204,6 +225,54 @@ def load_models_from_xml(file_path):
         return []
 
 
+def handle_failure_tracking(model_name):
+    """
+    Tracks failures. Models failing five times in 4 hours will be moved to a tertiary list.
+    """
+    now = datetime.now()
+
+    # Reset failure count if more than 4 hours have passed
+    if failed_models[model_name]['last_attempt'] is None or (now - failed_models[model_name]['last_attempt'] >= timedelta(hours=4)):
+        failed_models[model_name]['count'] = 0
+
+    # Increment the failure count
+    failed_models[model_name]['count'] += 1
+    failed_models[model_name]['last_attempt'] = now
+
+    # Move to tertiary list if failed five times in 4 hours
+    if failed_models[model_name]['count'] >= 5 and model_name not in tertiary_list:
+        tertiary_list.append(model_name)
+
+
+def purge_tertiary_list():
+    """
+    Clears the tertiary list every 8 hours.
+    """
+    tertiary_list.clear()
+    logging.info("Tertiary list purged.")
+
+
+def handle_rate_limits(model_name):
+    """
+    Handles the rate limit by tracking the model and temporarily excluding it from selection.
+    """
+    now = datetime.now()
+    
+    if rate_limited_models[model_name]['last_attempt'] is None:
+        rate_limited_models[model_name]['last_attempt'] = now
+    else:
+        # If 15 minutes have passed, reset count
+        if now - rate_limited_models[model_name]['last_attempt'] >= timedelta(minutes=15):
+            rate_limited_models[model_name]['count'] = 0
+
+    # Increment the count of rate limit occurrences
+    rate_limited_models[model_name]['count'] += 1
+    rate_limited_models[model_name]['last_attempt'] = now
+
+    # Add the model to the secondary list for temporary exclusion
+    if model_name not in secondary_list:
+        secondary_list.append(model_name)
+
 
 # Get a free model from the models list
 def get_free_model(models):
@@ -255,68 +324,42 @@ async def semantic_analysis(user_input):
 # Function to analyze user input and pick the best model
 def pick_best_model(user_message, models):
     """
-    This function analyzes user input and picks the best model based on the semantic analysis.
-    It adds more randomness to break ties between similar models and ensures provider alternation.
+    Picks the best model based on user message while excluding embedding models,
+    rate-limited models, and failed models.
     """
-    # Filter out embedding models
+    # 1. Filter out embedding-tagged models
     non_embedding_models = [model for model in models if not model.get('is_embedding_model', False)]
     
-    # Check if there are non-embedding models available
-    if not non_embedding_models:
-        logging.error("No available models to generate a response.")
+    # 2. Exclude models from secondary and tertiary lists
+    available_models = [model for model in non_embedding_models if model['name'] not in secondary_list and model['name'] not in tertiary_list]
+    
+    # 3. Check if there are any available models left
+    if not available_models:
+        logging.error("No available models to generate a response due to rate limits or failures.")
         return None
 
-    # Flatten the candidate labels (tags)
-    candidate_labels = [' '.join(model['tags']) for model in non_embedding_models]
+    # 4. Flatten the candidate labels (tags)
+    candidate_labels = [' '.join(model['tags']) for model in available_models]
 
-    # Perform zero-shot classification with multi_label=True
+    # 5. Perform zero-shot classification with multi_label=True to pick the best model based on user input
     try:
         result = nlp_model(user_message, candidate_labels, multi_label=True)
     except Exception as e:
         logging.error(f"Error in zero-shot classification: {e}")
-        return random.choice(non_embedding_models)  # Fallback
+        return random.choice(available_models)  # Fallback to any available model
 
-    # Log the scores and labels for debugging
-    logging.info(f"Result Scores: {result['scores']}")
-    logging.info(f"Labels: {result['labels']}")
-
-    # Introduce randomness among top 5 candidates
+    # 6. Sort and randomize the top models to introduce some variety
     top_n_candidates = 5
     sorted_indices = sorted(range(len(result['scores'])), key=lambda i: result['scores'][i], reverse=True)
     top_indices = sorted_indices[:top_n_candidates]
-    top_models = [non_embedding_models[i] for i in top_indices]
-
-    # Shuffle the top models to introduce randomness
+    top_models = [available_models[i] for i in top_indices]
+    
+    # 7. Randomly select a model from the top candidates
     random.shuffle(top_models)
-
-    # Log the randomized selection process
-    logging.info(f"Shuffled top models: {[model['name'] for model in top_models]}")
-
-    # Select the first model after shuffling
     best_model = top_models[0]
+    
     logging.info(f"Selected model for response: {best_model['name']}")
-
     return best_model
-
-
-async def generate_react(message):
-    # Get the context (last 5 messages)
-    context = await extract_context(message)
-
-    # Perform sentiment analysis
-    sentiment = sentiment_analysis(message.content, context)
-
-    # Get the vibe based on sentiment
-    tone = vibe_check(sentiment)
-
-    # Decide whether to react with GIF, emoji, or text
-    if tone in ['funny', 'playful']:
-        if random.random() > 0.5:  # Randomly choose between GIF or emoji
-            return await gif_response(tone)
-        else:
-            return emoji_react(tone)
-    else:
-        return await generate_response(message.content, sentiment, context)
 
 
 async def sentiment_analysis(message, context, candidate_labels=None):
@@ -366,6 +409,25 @@ async def sentiment_analysis(message, context, candidate_labels=None):
         logging.error(f"Error during sentiment analysis: {e}")
         return ['neutral']  # Fallback to neutral if an error occurs
 
+
+async def generate_react(message):
+    # Get the context (last 5 messages)
+    context = await extract_context(message)
+
+    # Perform sentiment analysis
+    sentiment = sentiment_analysis(message.content, context)
+
+    # Get the vibe based on sentiment
+    tone = vibe_check(sentiment)
+
+    # Decide whether to react with GIF, emoji, or text
+    if tone in ['funny', 'playful']:
+        if random.random() > 0.5:  # Randomly choose between GIF or emoji
+            return await gif_response(tone)
+        else:
+            return emoji_react(tone)
+    else:
+        return await generate_response(message.content, sentiment, context)
 
 
 def vibe_check(sentiments):
@@ -597,7 +659,11 @@ async def generate_response(instructions, search, history, user_message, last_pr
     logging.info(f"Loading models from: {models_file_path}")
 
     models = load_models_from_xml(models_file_path)
-    logging.info(f"Available models: {[model['name'] for model in models]}")
+    if not models:
+        logging.error("No models loaded from XML.")
+        return "Error: No models available to generate a response."
+
+    logging.info(f"Loaded models: {[model['name'] for model in models]}")
 
     # Filter out embedding models
     models = [model for model in models if not model.get('is_embedding_model', False)]
@@ -632,14 +698,17 @@ async def generate_response(instructions, search, history, user_message, last_pr
         logging.info(f"Attempt #{attempt + 1}")
 
         # Filter models by provider, alternating providers each attempt
-        for selected_model in model_order:
-            if selected_model['name'] in used_models:
+        selected_model = None
+        for model in model_order:
+            if model['name'] in used_models:
                 continue  # Skip models we've already tried
-            provider = selected_model.get('provider', 'openrouter')
+            provider = model.get('provider', 'openrouter')
             if provider != last_provider:
+                selected_model = model
                 break
-        else:
-            # If all remaining models are from the same provider, fallback to trying any model
+
+        if selected_model is None:
+            # If no model found that hasn't been used, pick any available one
             logging.warning(f"All remaining models are from provider {last_provider}, retrying with the same provider.")
             selected_model = model_order[0]
 
@@ -676,15 +745,12 @@ async def generate_response(instructions, search, history, user_message, last_pr
             logging.info(f"Response time for {model_name}: {response_time:.2f} seconds")
 
             if response and hasattr(response, 'choices'):
-                try:
-                    if len(response.choices) > 0 and hasattr(response.choices[0], 'message'):
-                        message = response.choices[0].message.content
-                        logging.info(f"Successfully generated response with {model_name}")
-                        logging.debug(f"Generated message: {message}")
-                        return message
-                except (AttributeError, IndexError) as e:
-                    logging.warning(f"Unexpected response structure from {model_name}: {e}")
-                    continue  # Try the next model
+                if len(response.choices) > 0 and hasattr(response.choices[0], 'message'):
+                    message = response.choices[0].message.content
+                    logging.info(f"Successfully generated response with {model_name}: {message}")
+                    return message
+                else:
+                    logging.warning(f"Unexpected response structure from {model_name}: {response}")
             else:
                 logging.warning(f"No valid choices in the response from {model_name}. Trying next model...")
 
@@ -722,13 +788,12 @@ async def generate_response(instructions, search, history, user_message, last_pr
                 messages=messages
             )
             if response and hasattr(response, 'choices'):
-                try:
-                    if len(response.choices) > 0 and hasattr(response.choices[0], 'message'):
-                        message = response.choices[0].message.content
-                        logging.info(f"Successfully generated response with fallback model: {fallback_model['name']}")
-                        return message
-                except (AttributeError, IndexError) as e:
-                    logging.warning(f"Unexpected response structure from fallback model: {e}")
+                if len(response.choices) > 0 and hasattr(response.choices[0], 'message'):
+                    message = response.choices[0].message.content
+                    logging.info(f"Successfully generated response with fallback model: {message}")
+                    return message
+                else:
+                    logging.warning(f"Unexpected response structure from fallback model: {response}")
         except Exception as e:
             logging.error(f"Error generating response from fallback model: {e}")
 
